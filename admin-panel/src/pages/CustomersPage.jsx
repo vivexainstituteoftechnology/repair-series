@@ -1,0 +1,445 @@
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+import { Button, Card, Field, Input, Modal, PageHeader, SearchInput, Badge } from '../components/ui'
+import { useApp } from '../context/useApp'
+import { exportRows } from '../services/csv'
+import { bookingAddressSearchText, formatBookingAddressForDisplay } from '../utils/bookingAddress'
+
+export function CustomersPage() {
+  const {
+    customers,
+    session,
+    toggleCustomerBlock,
+    deleteCustomer,
+    createCustomer,
+    updateCustomerDetails,
+    addCustomerSupportNote,
+    loading,
+    mutating,
+  } = useApp()
+  const [search, setSearch] = useState('')
+  const [selected, setSelected] = useState(null)
+  const [noteText, setNoteText] = useState('')
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' })
+  const [editOpen, setEditOpen] = useState(false)
+  const [editForm, setEditForm] = useState({ id: '', name: '', phone: '', email: '', role: '' })
+
+  const filteredCustomers = useMemo(
+    () =>
+      customers.filter((customer) =>
+        [customer.name, customer.phone, customer.email, bookingAddressSearchText(customer.address)]
+          .join(' ')
+          .toLowerCase()
+          .includes(search.toLowerCase()),
+      ),
+    [customers, search],
+  )
+
+  const reset = () => {
+    setForm({ name: '', phone: '', email: '', address: '' })
+    setOpen(false)
+  }
+
+  const resetEdit = () => {
+    setEditForm({ id: '', name: '', phone: '', email: '', role: '' })
+    setEditOpen(false)
+  }
+
+  const canEdit = session?.role === 'superAdmin'
+  const canDelete = session?.role === 'superAdmin'
+
+  const submit = async (event) => {
+    event.preventDefault()
+
+    const email = form.email.trim().toLowerCase()
+    const phone = form.phone.trim()
+    const name = form.name.trim()
+    const address = form.address.trim()
+
+    if (!name || !phone || !email || !address) {
+      toast.error('Please fill all required fields.')
+      return
+    }
+
+    const duplicate = customers.some((c) => {
+      const cEmail = String(c.email || '').trim().toLowerCase()
+      const cPhone = String(c.phone || '').trim()
+      return cEmail === email || cPhone === phone
+    })
+
+    if (duplicate) {
+      toast.error('A customer with the same phone or email already exists.')
+      return
+    }
+
+    try {
+      await createCustomer({ name, phone, email, address })
+      reset()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  const submitEdit = async (event) => {
+    event.preventDefault()
+    if (!canEdit) {
+      toast.error('Only Super Admins can update customer details.')
+      return
+    }
+    try {
+      await updateCustomerDetails({
+        customerId: editForm.id,
+        name: editForm.name,
+        phone: editForm.phone,
+        role: editForm.role,
+      })
+      resetEdit()
+    } catch (error) {
+      toast.error(error.message)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title="Customer Management"
+        description="Search, inspect, and manage customer profiles with quick moderation actions."
+        actions={
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="w-full sm:w-[min(100%,22rem)]">
+              <SearchInput value={search} onChange={setSearch} placeholder="Search customers..." />
+            </div>
+            <Button className="w-full sm:w-auto" onClick={() => setOpen(true)}>
+              Add Customer
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full sm:w-auto"
+              onClick={() => exportRows('customers.csv', filteredCustomers)}
+            >
+              Export CSV
+            </Button>
+          </div>
+        }
+      />
+
+      <Card className="overflow-hidden p-0">
+        {loading.customers ? (
+          <div className="p-5 text-sm font-medium text-slate-700 dark:text-slate-300">Loading customers...</div>
+        ) : null}
+
+        {/* Mobile: stacked cards */}
+        <div className="space-y-3 p-4 md:hidden">
+          {filteredCustomers.map((customer) => (
+            <div
+              key={customer.id}
+              className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold text-slate-900 dark:text-white">{customer.name}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-800 dark:text-slate-200">{customer.phone}</p>
+                  <p className="mt-1 break-words text-sm font-medium text-slate-800 dark:text-slate-200">{customer.email}</p>
+                </div>
+                <Badge tone={customer.blocked ? 'danger' : 'success'}>{customer.blocked ? 'Blocked' : 'Active'}</Badge>
+              </div>
+
+              <p className="mt-3 text-sm leading-relaxed text-slate-800 dark:text-slate-200">
+                {formatBookingAddressForDisplay(customer.address)}
+              </p>
+
+              <div className="mt-4 flex items-center justify-between gap-3 text-sm font-semibold text-slate-900 dark:text-white">
+                <span>Bookings: {customer.totalBookings}</span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setSelected(customer)
+                    setNoteText('')
+                  }}
+                >
+                  View
+                </Button>
+                {canEdit ? (
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => {
+                      setEditForm({
+                        id: customer.id,
+                        name: customer.name || '',
+                        phone: customer.phone || '',
+                        email: customer.email || '',
+                        role: customer.role || '',
+                      })
+                      setEditOpen(true)
+                    }}
+                    disabled={Boolean(mutating.customerUpdate)}
+                  >
+                    Edit
+                  </Button>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => toggleCustomerBlock(customer.id, customer.blocked)}
+                  disabled={Boolean(mutating.customerBlock)}
+                >
+                  {customer.blocked ? 'Unblock' : 'Block'}
+                </Button>
+                {canDelete ? (
+                  <Button
+                    variant="danger"
+                    className="w-full"
+                    onClick={() => deleteCustomer(customer.id)}
+                    disabled={Boolean(mutating.customerDelete)}
+                  >
+                    Delete
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop: table */}
+        <div className="hidden overflow-x-auto md:block">
+          <table className="min-w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/60">
+              <tr>
+                {['Name', 'Phone', 'Email', 'Address', 'Total Bookings', 'Status', 'Actions'].map((header) => (
+                  <th key={header} className="px-5 py-4 text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredCustomers.map((customer) => (
+                <tr key={customer.id} className="transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-800/40">
+                  <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">{customer.name}</td>
+                  <td className="px-5 py-4 font-medium text-slate-800 dark:text-slate-200">{customer.phone}</td>
+                  <td className="px-5 py-4 font-medium text-slate-800 dark:text-slate-200">{customer.email}</td>
+                  <td className="px-5 py-4 text-slate-800 dark:text-slate-200">{formatBookingAddressForDisplay(customer.address)}</td>
+                  <td className="px-5 py-4 font-semibold text-slate-900 dark:text-white">{customer.totalBookings}</td>
+                  <td className="px-5 py-4">
+                    <Badge tone={customer.blocked ? 'danger' : 'success'}>
+                      {customer.blocked ? 'Blocked' : 'Active'}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="ghost" onClick={() => setSelected(customer)}>
+                        View
+                      </Button>
+                      {canEdit ? (
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            setEditForm({
+                              id: customer.id,
+                              name: customer.name || '',
+                              phone: customer.phone || '',
+                              email: customer.email || '',
+                              role: customer.role || '',
+                            })
+                            setEditOpen(true)
+                          }}
+                          disabled={Boolean(mutating.customerUpdate)}
+                        >
+                          Edit
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="ghost"
+                        onClick={() => toggleCustomerBlock(customer.id, customer.blocked)}
+                        disabled={Boolean(mutating.customerBlock)}
+                      >
+                        {customer.blocked ? 'Unblock' : 'Block'}
+                      </Button>
+                      {canDelete ? (
+                        <Button
+                          variant="danger"
+                          onClick={() => deleteCustomer(customer.id)}
+                          disabled={Boolean(mutating.customerDelete)}
+                        >
+                          Delete
+                        </Button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <Modal
+        open={Boolean(selected)}
+        title="Customer Details"
+        onClose={() => {
+          setSelected(null)
+          setNoteText('')
+        }}
+        className="max-w-3xl"
+      >
+        {selected ? (
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              {Object.entries(selected)
+                .filter(([key]) => key !== 'supportNotes')
+                .map(([key, value]) => (
+                  <div key={key} className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+                    <p className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">{key}</p>
+                    <p className="mt-2 break-words text-sm font-medium text-slate-900 dark:text-white">{String(value)}</p>
+                  </div>
+                ))}
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">Support notes</p>
+              <ul className="mt-3 space-y-2">
+                {(Array.isArray(selected.supportNotes) ? selected.supportNotes : []).length ? (
+                  [...selected.supportNotes]
+                    .slice()
+                    .reverse()
+                    .map((note, idx) => (
+                      <li
+                        key={`${note?.createdAt || idx}-${idx}`}
+                        className="rounded-xl border border-slate-200 bg-white p-3 text-sm dark:border-slate-700 dark:bg-slate-800"
+                      >
+                        <p className="font-medium text-slate-900 dark:text-white">{note?.text || '—'}</p>
+                        <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+                          {note?.adminName || 'Admin'}
+                          {note?.createdAt
+                            ? ` · ${new Date(note.createdAt).toLocaleString()}`
+                            : ''}
+                        </p>
+                      </li>
+                    ))
+                ) : (
+                  <li className="text-sm font-medium text-slate-600 dark:text-slate-400">No notes yet.</li>
+                )}
+              </ul>
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+                <div className="flex-1">
+                  <Field label="Add note">
+                    <Input
+                      value={noteText}
+                      onChange={(e) => setNoteText(e.target.value)}
+                      placeholder="Follow-up, complaint, preference…"
+                    />
+                  </Field>
+                </div>
+                <Button
+                  type="button"
+                  disabled={Boolean(mutating.customerSupportNote)}
+                  onClick={async () => {
+                    try {
+                      await addCustomerSupportNote({ customerId: selected.id, text: noteText })
+                      const entry = {
+                        text: noteText.trim(),
+                        createdAt: new Date().toISOString(),
+                        adminName: session?.name || session?.email || 'Admin',
+                        adminId: session?.id || null,
+                      }
+                      setSelected((cur) =>
+                        cur
+                          ? {
+                              ...cur,
+                              supportNotes: [...(Array.isArray(cur.supportNotes) ? cur.supportNotes : []), entry],
+                            }
+                          : cur,
+                      )
+                      setNoteText('')
+                    } catch (error) {
+                      toast.error(error.message)
+                    }
+                  }}
+                >
+                  {mutating.customerSupportNote ? 'Saving…' : 'Add note'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal open={editOpen} title="Edit customer" onClose={resetEdit} className="max-w-2xl">
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={submitEdit}>
+          <Field label="Name">
+            <Input value={editForm.name} onChange={(e) => setEditForm((c) => ({ ...c, name: e.target.value }))} required />
+          </Field>
+          <Field label="Phone">
+            <Input
+              inputMode="tel"
+              value={editForm.phone}
+              onChange={(e) => setEditForm((c) => ({ ...c, phone: e.target.value }))}
+              placeholder="+91XXXXXXXXXX"
+              required
+            />
+          </Field>
+          <Field label="Role">
+            <Input value={editForm.role} onChange={(e) => setEditForm((c) => ({ ...c, role: e.target.value }))} placeholder="customer" />
+          </Field>
+          <Field label="Email (not editable)">
+            <Input value={editForm.email} disabled />
+          </Field>
+          <div className="md:col-span-2 flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="ghost" onClick={resetEdit} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto"
+              disabled={!canEdit || Boolean(mutating.customerUpdate)}
+            >
+              {mutating.customerUpdate ? 'Saving...' : 'Save changes'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={open}
+        title="Add Customer"
+        onClose={reset}
+        className="max-h-[80vh] max-w-2xl overflow-hidden"
+        bodyClassName="overflow-y-auto pr-1"
+      >
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
+          <Field label="Name">
+            <Input value={form.name} onChange={(e) => setForm((c) => ({ ...c, name: e.target.value }))} required />
+          </Field>
+          <Field label="Phone Number">
+            <Input value={form.phone} onChange={(e) => setForm((c) => ({ ...c, phone: e.target.value }))} required />
+          </Field>
+          <Field label="Email ID">
+            <Input type="email" value={form.email} onChange={(e) => setForm((c) => ({ ...c, email: e.target.value }))} required />
+          </Field>
+          <div className="md:col-span-2">
+            <Field label="Address">
+              <Input value={form.address} onChange={(e) => setForm((c) => ({ ...c, address: e.target.value }))} required />
+            </Field>
+          </div>
+          <div className="md:col-span-2 flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="ghost" onClick={reset} className="w-full sm:w-auto">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto"
+              disabled={Boolean(mutating.customerCreate)}
+            >
+              {mutating.customerCreate ? 'Saving...' : 'Create Customer'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  )
+}

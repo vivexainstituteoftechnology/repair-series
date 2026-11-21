@@ -1,0 +1,191 @@
+import {
+  doc,
+  getDoc,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+  type Firestore,
+} from "firebase/firestore";
+import { releaseBusySlotForBooking } from "@/lib/booking/allocation";
+import {
+  assignNearestPartnerForBooking,
+  assignSpecificPartnerForBooking,
+} from "@/lib/booking/assign-api";
+import { getAuthClient } from "@/lib/firebase/auth";
+import { isPastDateKey, isSlotPast, resolveBookingSlot } from "@/lib/booking/slots";
+import { slotLabelFromIndex } from "@/lib/booking/technician-slots";
+import { getServiceCategoryId } from "@/lib/booking/slot-availability";
+import { loadService } from "@/lib/services/helpers";
+import { evaluateReschedule, slotStartMsFromBooking } from "@/lib/booking/cancellationPolicy";
+
+function scheduledAtFromLocalSlot(dateKey: string, startHour: number): Date {
+  const parts = String(dateKey).trim().split("-").map(Number);
+  if (parts.length !== 3 || parts.some((n) => !Number.isFinite(n))) {
+    return new Date(NaN);
+  }
+  const [y, m, d] = parts;
+  return new Date(y, m - 1, d, startHour, 0, 0, 0);
+}
+
+/**
+ * Reschedule a New/Assigned booking to a new date + slot.
+ * Releases the previous busy slot and re-locks for the same technician when possible.
+ */
+export async function rescheduleBooking(
+  db: Firestore,
+  params: {
+    bookingId: string;
+    customerId: string;
+    dateKey: string;
+    slotId?: string;
+    slotIndex?: number;
+  },
+): Promise<void> {
+  const liveUser = getAuthClient()?.currentUser;
+  if (!liveUser) {
+    throw Object.assign(new Error("Sign in required"), { status: 401 });
+  }
+  const bookingId = String(params.bookingId || "").trim();
+  const customerId = liveUser.uid;
+  if (params.customerId && params.customerId !== customerId) {
+    throw Object.assign(new Error("Not allowed"), { status: 403 });
+  }
+  if (!bookingId) throw new Error("Missing booking or customer.");
+
+  const slot = resolveBookingSlot(params.slotId, params.slotIndex);
+  if (!slot) throw new Error("Invalid time slot selected.");
+  if (isPastDateKey(params.dateKey)) throw new Error("Cannot reschedule to a past date.");
+  if (isSlotPast(params.dateKey, slot)) {
+    throw new Error("This time slot has already passed. Please choose a future slot.");
+  }
+
+  const ref = doc(db, "bookings", bookingId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error("Booking not found.");
+  const data = {
+    id: snap.id,
+    ...(snap.data() as Record<string, unknown>),
+  } as Record<string, unknown> & { id: string };
+  if (String(data.customerId ?? "") !== customerId) {
+    throw new Error("Not allowed.");
+  }
+
+  const status = String(data.status ?? "").trim();
+  if (!["New", "Assigned", "pending"].includes(status)) {
+    throw new Error("Only upcoming bookings can be rescheduled.");
+  }
+  const gate = evaluateReschedule({ slotStartMs: slotStartMsFromBooking(data) });
+  if (!gate.allowed) {
+    throw new Error(
+      gate.reason === "AT_SLOT"
+        ? "Reschedule is not available at the booking time."
+        : "Reschedule is only allowed until 2 hours before the slot.",
+    );
+  }
+
+  const addr = (data.address || {}) as { lat?: number; lng?: number };
+  const userLat = Number(addr.lat);
+  const userLng = Number(addr.lng);
+
+  const scheduledAtDate = scheduledAtFromLocalSlot(params.dateKey, slot.startHour);
+  if (Number.isNaN(scheduledAtDate.getTime())) {
+    throw new Error("Invalid booking date.");
+  }
+
+  const slotLabel = slot.label || slotLabelFromIndex(slot.slotIndex);
+  const previousTechId = String(data.technicianId || "").trim();
+  const previousSlot = {
+    id: data.id,
+    technicianId: data.technicianId,
+    scheduledSlotDate: data.scheduledSlotDate,
+    scheduledSlotIndex: data.scheduledSlotIndex,
+  };
+
+  try {
+    const serviceId = String(data.serviceId || "").trim();
+    const service = serviceId ? await loadService(db, serviceId) : null;
+    const categoryId =
+      String(data.categoryId || data.serviceCategoryId || "").trim() ||
+      (service ? getServiceCategoryId(service) : "");
+    const serviceTypeId = String(data.serviceTypeId || "").trim();
+    const serviceCategoryId = String(data.serviceCategoryId || categoryId || "").trim();
+
+    if (previousTechId && status === "Assigned") {
+      try {
+        await assignSpecificPartnerForBooking({
+          bookingId,
+          technicianId: previousTechId,
+          dateStr: params.dateKey,
+          slotIndex: slot.slotIndex,
+          slotLabel,
+          categoryId: categoryId || undefined,
+          serviceTypeId: serviceTypeId || undefined,
+          serviceCategoryId: serviceCategoryId || undefined,
+        });
+      } catch (e) {
+        const err = e as Error & { code?: string };
+        if (err.code !== "ALL_TECHS_BUSY") throw e;
+        if (!categoryId) throw e;
+        await assignNearestPartnerForBooking({
+          bookingId,
+          dateStr: params.dateKey,
+          slotIndex: slot.slotIndex,
+          slotLabel,
+          categoryId,
+          serviceTypeId: serviceTypeId || undefined,
+          serviceCategoryId: serviceCategoryId || undefined,
+          userLat,
+          userLng,
+        });
+      }
+    } else {
+      if (!categoryId) {
+        throw new Error("Service not found for reschedule.");
+      }
+      await assignNearestPartnerForBooking({
+        bookingId,
+        dateStr: params.dateKey,
+        slotIndex: slot.slotIndex,
+        slotLabel,
+        categoryId,
+        serviceTypeId: serviceTypeId || undefined,
+        serviceCategoryId: serviceCategoryId || undefined,
+        userLat,
+        userLng,
+      });
+    }
+  } catch (e) {
+    const err = e as Error & { code?: string };
+    if (err.code === "ALL_TECHS_BUSY" || err.code === "PAST_SLOT") {
+      throw new Error(
+        "This slot is no longer available. Please select another slot.",
+      );
+    }
+    if (err.code === "ASSIGN_PERMISSION_DENIED" || err.code === "permission-denied") {
+      throw new Error("Booking assignment permission denied");
+    }
+    if (err.code === "NO_ELIGIBLE_PARTNER") {
+      throw new Error("No partner is currently available for this slot.");
+    }
+    throw e;
+  }
+
+  await updateDoc(ref, {
+    scheduledAt: Timestamp.fromDate(scheduledAtDate),
+    scheduleDateKey: params.dateKey,
+    scheduleSlotIndex: Math.max(0, slot.slotIndex - 1),
+    slotStartHour: slot.startHour,
+    date: params.dateKey,
+    time: slotLabel,
+    slot: slotLabel,
+    bookingDate: params.dateKey,
+    updatedAt: serverTimestamp(),
+    rescheduledAt: serverTimestamp(),
+  });
+
+  try {
+    await releaseBusySlotForBooking(db, previousSlot);
+  } catch {
+    /* old slot release is best-effort after new slot is reserved */
+  }
+}
