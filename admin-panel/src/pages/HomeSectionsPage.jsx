@@ -15,6 +15,8 @@ import {
   Pencil,
   Plus,
   Trash2,
+  Sparkles,
+  ShoppingBag,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -44,6 +46,7 @@ import {
   normalizeHomeChromeSticky,
 } from '../utils/homeChromeSettings'
 import { HomeSectionBannerSlidesEditor } from '../components/HomeSectionBannerSlidesEditor'
+import { MarketplaceSectionEditor } from '../components/MarketplaceSectionEditor'
 import { uploadToCloudinary } from '../services/cloudinary'
 import { useApp } from '../context/useApp'
 import { catalogTitle } from '../utils/catalogHierarchy'
@@ -87,6 +90,8 @@ export function HomeSectionsPage() {
   const [dragId, setDragId] = useState('')
   const [chromeSticky, setChromeSticky] = useState(() => ({ ...DEFAULT_HOME_CHROME_STICKY }))
   const [catalogChrome, setCatalogChrome] = useState(() => ({ ...DEFAULT_CATALOG_CHROME }))
+  const [marketplaceEditorOpen, setMarketplaceEditorOpen] = useState(false)
+  const [editingMarketplaceSection, setEditingMarketplaceSection] = useState(null)
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState(() => new Set())
@@ -445,6 +450,11 @@ export function HomeSectionsPage() {
   }
 
   const openEdit = (row) => {
+    if (row.contentType === 'marketplace' || row.type === 'marketplace') {
+      setEditingMarketplaceSection(row)
+      setMarketplaceEditorOpen(true)
+      return
+    }
     setForm({
       ...emptyHomeSectionForm(typeId),
       ...row,
@@ -578,7 +588,17 @@ export function HomeSectionsPage() {
               <FolderInput className="mr-1.5 size-4" />
               Copy from another screen
             </Button>
-            <Button type="button" className="gap-2" onClick={openCreate} disabled={!typeId}>
+            <Button
+              type="button"
+              className="gap-2 bg-[#C45508] text-white hover:bg-[#a84706]"
+              onClick={() => {
+                setEditingMarketplaceSection(null)
+                setMarketplaceEditorOpen(true)
+              }}
+            >
+              <ShoppingBag className="size-4" /> Marketplace Editor
+            </Button>
+            <Button type="button" variant="outline" className="gap-2" onClick={openCreate} disabled={!typeId}>
               <Plus className="size-4" /> Add section
             </Button>
           </div>
@@ -837,14 +857,32 @@ export function HomeSectionsPage() {
                       <p className="font-semibold text-slate-900 dark:text-white">
                         ☰ {row.title || 'Untitled'}
                       </p>
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                        {HOME_SECTION_CONTENT_LABELS[row.contentType] || row.contentType} ·{' '}
-                        {HOME_SECTION_LAYOUT_LABELS[row.layout] || row.layout}
-                        {row.categoryId ? ' · filtered category' : ''}
+                      <p className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2 flex-wrap">
+                        <span>
+                          {HOME_SECTION_CONTENT_LABELS[row.contentType] || row.contentType} ·{' '}
+                          {HOME_SECTION_LAYOUT_LABELS[row.layout] || row.layout}
+                          {row.categoryId ? ' · filtered category' : ''}
+                        </span>
+                        {(row.contentType === 'banners' || row.contentType === 'fullWidthBanner') && row.images?.length ? (
+                          <span className="rounded-md bg-primary-50 dark:bg-primary-950/40 border border-primary-200 dark:border-primary-800 px-1.5 py-0.5 text-[10px] font-bold text-primary-700 dark:text-primary-300">
+                            {row.images.length} slide{row.images.length === 1 ? '' : 's'}
+                          </span>
+                        ) : null}
                       </p>
                     </div>
                     <Badge tone={enabled ? 'success' : 'neutral'}>{enabled ? 'Visible' : 'Hidden'}</Badge>
                     <div className="flex flex-wrap gap-1">
+                      {(row.contentType === 'banners' || row.contentType === 'fullWidthBanner') ? (
+                        <button
+                          type="button"
+                          className="rounded-lg border border-primary-200 dark:border-primary-800 p-1.5 text-primary-600 hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-primary-950/40 transition-colors"
+                          onClick={() => openEdit(row)}
+                          title="Customize Banner Slideshow (Advanced Editor)"
+                          aria-label="Customize Banner Slideshow"
+                        >
+                          <Sparkles className="size-3.5" />
+                        </button>
+                      ) : null}
                       <button
                         type="button"
                         className="rounded-lg border p-1.5 hover:bg-[var(--surface-high)]"
@@ -1656,6 +1694,30 @@ export function HomeSectionsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Marketplace Editor Full Modal */}
+      {marketplaceEditorOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="w-full max-w-7xl h-[92vh] overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200 flex flex-col">
+            <MarketplaceSectionEditor
+              section={editingMarketplaceSection}
+              services={services}
+              categories={categories}
+              serviceTypes={serviceTypes}
+              serviceCategories={serviceCategories}
+              onClose={() => {
+                setMarketplaceEditorOpen(false)
+                setEditingMarketplaceSection(null)
+              }}
+              onSave={async (payload) => {
+                await upsertHomeSection({ ...payload, serviceTypeId: typeId || payload.serviceTypeId })
+                setMarketplaceEditorOpen(false)
+                setEditingMarketplaceSection(null)
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

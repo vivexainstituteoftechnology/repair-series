@@ -218,7 +218,7 @@ export function DynamicBannerSlide({
       return (
         <h2
           key={`title-${index}`}
-          className={`font-black tracking-tight leading-tight transition-all duration-300 ${
+          className={`font-black tracking-tight leading-tight transition-all duration-300 whitespace-pre-line break-words ${
             activeSettings ? "" : "text-xl sm:text-2xl md:text-3xl lg:text-4xl"
           }`}
           style={{
@@ -250,7 +250,7 @@ export function DynamicBannerSlide({
       return (
         <p
           key={`tagline-${index}`}
-          className={`font-medium transition-all duration-300 ${
+          className={`font-medium transition-all duration-300 whitespace-pre-line break-words ${
             activeSettings ? "" : "text-xs sm:text-sm md:text-base"
           }`}
           style={{
@@ -310,12 +310,13 @@ export function DynamicBannerSlide({
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="group inline-block"
               >
                 {btnContent}
               </a>
             ) : (
-              <Link href={href} className="group inline-block">
+              <Link href={href} onClick={(e) => e.stopPropagation()} className="group inline-block">
                 {btnContent}
               </Link>
             )}

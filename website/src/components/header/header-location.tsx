@@ -29,12 +29,22 @@ type SavedAddress = {
   lng?: number;
 };
 
-export function HeaderLocationDropdown() {
+type HeaderLocationDropdownProps = {
+  variant?: "default" | "onTheme";
+  className?: string;
+};
+
+export function HeaderLocationDropdown({
+  variant = "default",
+  className = "",
+}: HeaderLocationDropdownProps) {
   const { customer } = useAuth();
   const { label, loading, refreshFromGps, applySavedAddress } = useLocation();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+
+  const isTheme = variant === "onTheme";
 
   const savedAddresses = (Array.isArray(customer?.addresses)
     ? customer.addresses
@@ -64,7 +74,11 @@ export function HeaderLocationDropdown() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="group flex items-center gap-2 rounded-full border border-slate-200/90 bg-slate-50/70 hover:bg-white px-3 sm:px-3.5 py-1.5 text-left transition-all hover:border-slate-300 hover:shadow-xs"
+        className={`group flex items-center gap-2 rounded-full border px-3 sm:px-3.5 py-1.5 text-left transition-all ${
+          isTheme
+            ? "border-white/30 bg-white text-slate-900 shadow-xs hover:bg-slate-50"
+            : "border-slate-200/90 bg-white/95 backdrop-blur-md text-slate-800 shadow-xs hover:bg-white"
+        } ${className}`}
         aria-expanded={open}
         aria-haspopup="listbox"
       >

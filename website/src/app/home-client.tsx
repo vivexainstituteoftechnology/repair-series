@@ -18,6 +18,7 @@ import {
   Sparkles,
   Layers,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -55,14 +56,10 @@ import {
 import { splitComingSoonByCategory } from "@/lib/catalog/coming-soon";
 import {
   filterHomeSectionsForPlatform,
-  filterHomeSectionsForServiceType,
   type HomeBannerDoc,
   type HomeSectionDoc,
 } from "@/lib/home-sections/resolve";
-import { HeaderSearch } from "@/components/header/header-search";
-import { HeaderLocationDropdown } from "@/components/header/header-location";
-import { HeaderCartButton } from "@/components/header/header-cart";
-import { HeaderAuth } from "@/components/header-auth";
+import { MobileGlobalHeader } from "@/components/header/mobile-global-header";
 
 type CategoryDoc = {
   id: string;
@@ -259,41 +256,23 @@ export function HomePageClient() {
 
   const useCms = cmsSections.length > 0;
 
-  useEffect(() => {
-    if (selectedTypeId) return;
-    const first = serviceTypes[0]?.id;
-    if (first) setSelectedTypeId(first);
-  }, [selectedTypeId, serviceTypes]);
+  const [selectedServiceTypeForModal, setSelectedServiceTypeForModal] =
+    useState<CategoryDoc | null>(null);
 
-  const selectedType = serviceTypes.find((t) => t.id === selectedTypeId) || serviceTypes[0];
-  const homeLayoutSections = useMemo(
-    () => filterHomeSectionsForServiceType(cmsSections, selectedType?.id),
-    [cmsSections, selectedType?.id],
-  );
+  const modalCategories = useMemo(() => {
+    if (!selectedServiceTypeForModal) return [];
+    const typeId = selectedServiceTypeForModal.id;
+    const directMatches = categories.filter(
+      (c) => (c as Record<string, unknown>).serviceTypeId === typeId,
+    );
+    if (directMatches.length > 0) return directMatches;
+    return categories;
+  }, [selectedServiceTypeForModal, categories]);
 
   return (
     <div className="relative min-h-screen bg-[#F8FAFC] text-slate-900 antialiased font-sans">
-      {/* Mobile-Only Header Bar (matches Urban Company mobile top app bar) */}
-      <div className="md:hidden sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3">
-        <div className="flex items-center justify-between gap-3 mb-2.5">
-          <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="RepairSeries" className="size-7 object-contain" />
-            <span className="font-extrabold text-base tracking-tight text-slate-900">
-              Repair<span className="text-[#C86A37]">Series</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <HeaderCartButton />
-            <HeaderAuth />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <HeaderLocationDropdown />
-          <div className="flex-1">
-            <HeaderSearch />
-          </div>
-        </div>
-      </div>
+      {/* Mobile-Only Header Bar with 2 Rows: Location + Cart, Search. Transparent on top, solid #C45508 on scroll */}
+      <MobileGlobalHeader />
 
       {loadError ? (
         <div className="border-b border-rose-200 bg-rose-50 px-4 py-2.5 text-center text-xs font-semibold text-rose-800">
@@ -324,26 +303,28 @@ export function HomePageClient() {
             subtitle="Most booked appliance & home repairs trusted by customers daily"
           />
 
-          {/* SECTION 3: Dynamic Home Sections (from Firestore CMS) or Curated Sliders */}
+          {/* SECTION 3: Dynamic Home Sections (Single Unified Marketplace Homepage) */}
           {useCms ? (
             <DynamicHomeSections
               variant="desktop"
               platform="desktopWeb"
-              sections={homeLayoutSections}
+              sections={cmsSections}
               categories={categories}
               services={services}
               comingSoon={comingSoon}
               extraCatalog={{ serviceTypes, serviceCategories }}
-              selectedServiceTypeId={selectedType?.id || ""}
-              selectedServiceTypeName={String(selectedType?.title || selectedType?.name || "")}
+              selectedServiceTypeId=""
+              selectedServiceTypeName="All Services"
               banners={banners}
               onSelectServiceType={(id) => {
                 const type = serviceTypes.find((t) => t.id === id);
-                if (isWallPanelCatalogItem(type)) {
-                  router.push("/wall-panel");
-                  return;
+                if (type) {
+                  if (isWallPanelCatalogItem(type)) {
+                    router.push("/wall-panel");
+                    return;
+                  }
+                  setSelectedServiceTypeForModal(type);
                 }
-                setSelectedTypeId(id);
               }}
             />
           ) : (
@@ -353,6 +334,57 @@ export function HomePageClient() {
               <CleaningEssentialsSection services={services} />
             </div>
           )}
+
+          {/* Service Type Associated Categories Modal (Requirement 5) */}
+          {selectedServiceTypeForModal ? (
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+              <div className="w-full max-w-lg overflow-hidden rounded-t-3xl sm:rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">
+                      {selectedServiceTypeForModal.title || selectedServiceTypeForModal.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Select a category to view available doorstep services
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedServiceTypeForModal(null)}
+                    className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+                  >
+                    <X className="size-5" />
+                  </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2.5 max-h-[60vh] overflow-y-auto p-1">
+                  {modalCategories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      href={`/categories/${cat.id}`}
+                      onClick={() => setSelectedServiceTypeForModal(null)}
+                      className="flex flex-col items-center text-center p-2.5 rounded-2xl border border-slate-200/80 hover:border-[#C45508]/40 hover:bg-[#FFF7ED]/30 transition group"
+                    >
+                      <div className="size-14 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 flex items-center justify-center mb-1.5 group-hover:scale-105 transition-transform">
+                        {cat.homeImage || cat.imageUrl || cat.image || cat.icon ? (
+                          <img
+                            src={cat.homeImage || cat.imageUrl || cat.image || cat.icon}
+                            alt=""
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <Wrench className="size-6 text-slate-300" />
+                        )}
+                      </div>
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-2 leading-tight">
+                        {cat.name || cat.title}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {/* SECTION 4: Wall Panels Exclusive Studio Feature Banner */}
           <section className="my-10 rounded-3xl overflow-hidden border border-slate-200/90 bg-gradient-to-r from-[#240308] via-[#540D17] to-[#7E1926] p-8 sm:p-14 min-h-[360px] sm:min-h-[400px] flex flex-col justify-center text-white shadow-xl relative">

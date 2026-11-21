@@ -90,92 +90,98 @@ export function DynamicBannerEditor({
   serviceTypes = [],
   categories = [],
   services = [],
+  title: customTitle,
+  subtitle: customSubtitle,
 }) {
   // Deep copy banner with sensible defaults
-  const [form, setForm] = useState(() => ({
-    id: banner?.id || '',
-    title: banner?.title || '',
-    tagline: banner?.tagline || '',
-    buttonText: banner?.buttonText || '',
-    buttonLink: banner?.buttonLink || banner?.redirectLink || '',
-    section: normalizeBannerSection(banner?.section || 'home'),
-    mobileImage: banner?.mobileImage || '',
-    websiteImage: banner?.websiteImage || '',
-    image: banner?.image || banner?.mobileImage || banner?.websiteImage || '',
-    redirectLink: banner?.redirectLink || '',
-    displayOrder: Number(banner?.displayOrder ?? 0),
-    enabled: banner?.enabled !== false && banner?.active !== false,
-    startAt: banner?.startAt || '',
-    endAt: banner?.endAt || '',
-    serviceTypeId: banner?.serviceTypeId || '',
-    categoryId: banner?.categoryId || '',
-    serviceId: banner?.serviceId || '',
-    clickAction: banner?.clickAction || (banner?.redirectLink ? 'external' : 'none'),
-    slideDuration: Number(banner?.slideDuration ?? 3000),
-    contentPosition: banner?.contentPosition || 'left',
-    contentVerticalAlign: banner?.contentVerticalAlign || 'center',
-    elementOrder: Array.isArray(banner?.elementOrder) && banner.elementOrder.length > 0
-      ? banner.elementOrder
-      : ['title', 'tagline', 'button'],
-    animations: {
-      title: banner?.animations?.title || 'slideUp',
-      tagline: banner?.animations?.tagline || 'slideUp',
-      button: banner?.animations?.button || 'fadeIn',
-      duration: banner?.animations?.duration ?? 0.6,
-      stagger: banner?.animations?.stagger ?? 0.15,
-    },
-    overlay: {
-      enabled: banner?.overlay?.enabled !== false,
-      color: banner?.overlay?.color || '#000000',
-      opacity: banner?.overlay?.opacity ?? 45,
-      gradientDirection: banner?.overlay?.gradientDirection || 'to-r',
-      gradientIntensity: banner?.overlay?.gradientIntensity ?? 70,
-      backdropBlur: Boolean(banner?.overlay?.backdropBlur),
-    },
-    styling: {
-      titleColor: banner?.styling?.titleColor || '#FFFFFF',
-      titleWeight: banner?.styling?.titleWeight || '800',
-      titleLineHeight: banner?.styling?.titleLineHeight || 'tight',
-      titleShadow: banner?.styling?.titleShadow || 'medium',
-      titleOutline: Boolean(banner?.styling?.titleOutline),
-      taglineColor: banner?.styling?.taglineColor || '#F3F4F6',
-      taglineWeight: banner?.styling?.taglineWeight || '500',
-      taglineLineHeight: banner?.styling?.taglineLineHeight || 'normal',
-      taglineShadow: banner?.styling?.taglineShadow || 'subtle',
-      taglineOutline: Boolean(banner?.styling?.taglineOutline),
-      buttonBgColor: banner?.styling?.buttonBgColor || '#C86A37',
-      buttonTextColor: banner?.styling?.buttonTextColor || '#FFFFFF',
-      buttonRadius: banner?.styling?.buttonRadius || 'rounded-xl',
-      contentGap: banner?.styling?.contentGap ?? 12,
-      maxWidth: banner?.styling?.maxWidth ?? 650,
-    },
-    responsive: {
-      desktop: {
-        titleSize: banner?.responsive?.desktop?.titleSize ?? 32,
-        taglineSize: banner?.responsive?.desktop?.taglineSize ?? 16,
-        position: banner?.responsive?.desktop?.position ?? 'left',
-        verticalAlign: banner?.responsive?.desktop?.verticalAlign ?? 'center',
-        maxWidth: banner?.responsive?.desktop?.maxWidth ?? 650,
-        buttonSize: banner?.responsive?.desktop?.buttonSize ?? 'md',
+  const [form, setForm] = useState(() => {
+    const rawUrl = String(banner?.url || banner?.image || banner?.websiteImage || banner?.mobileImage || '').trim()
+    return {
+      id: banner?.id || '',
+      title: banner?.title || '',
+      tagline: banner?.tagline || '',
+      buttonText: banner?.buttonText || '',
+      buttonLink: banner?.buttonLink || banner?.redirectLink || '',
+      section: normalizeBannerSection(banner?.section || 'home'),
+      mobileImage: banner?.mobileImage || (banner?.source !== 'url' ? rawUrl : '') || '',
+      websiteImage: banner?.websiteImage || rawUrl || '',
+      image: banner?.image || rawUrl || '',
+      url: rawUrl,
+      redirectLink: banner?.redirectLink || banner?.buttonLink || '',
+      displayOrder: Number(banner?.displayOrder ?? 0),
+      enabled: banner?.enabled !== false && banner?.active !== false,
+      startAt: banner?.startAt || '',
+      endAt: banner?.endAt || '',
+      serviceTypeId: banner?.serviceTypeId || '',
+      categoryId: banner?.categoryId || '',
+      serviceId: banner?.serviceId || '',
+      clickAction: banner?.clickAction || (banner?.redirectLink ? 'external' : 'none'),
+      slideDuration: Number(banner?.slideDuration ?? 3000),
+      contentPosition: banner?.contentPosition || 'left',
+      contentVerticalAlign: banner?.contentVerticalAlign || 'center',
+      elementOrder: Array.isArray(banner?.elementOrder) && banner.elementOrder.length > 0
+        ? banner.elementOrder
+        : ['title', 'tagline', 'button'],
+      animations: {
+        title: banner?.animations?.title || 'slideUp',
+        tagline: banner?.animations?.tagline || 'slideUp',
+        button: banner?.animations?.button || 'fadeIn',
+        duration: banner?.animations?.duration ?? 0.6,
+        stagger: banner?.animations?.stagger ?? 0.15,
       },
-      tablet: {
-        titleSize: banner?.responsive?.tablet?.titleSize ?? 26,
-        taglineSize: banner?.responsive?.tablet?.taglineSize ?? 14,
-        position: banner?.responsive?.tablet?.position ?? 'left',
-        verticalAlign: banner?.responsive?.tablet?.verticalAlign ?? 'center',
-        maxWidth: banner?.responsive?.tablet?.maxWidth ?? 500,
-        buttonSize: banner?.responsive?.tablet?.buttonSize ?? 'md',
+      overlay: {
+        enabled: banner?.overlay?.enabled !== false,
+        color: banner?.overlay?.color || '#000000',
+        opacity: banner?.overlay?.opacity ?? 45,
+        gradientDirection: banner?.overlay?.gradientDirection || 'to-r',
+        gradientIntensity: banner?.overlay?.gradientIntensity ?? 70,
+        backdropBlur: Boolean(banner?.overlay?.backdropBlur),
       },
-      mobile: {
-        titleSize: banner?.responsive?.mobile?.titleSize ?? 20,
-        taglineSize: banner?.responsive?.mobile?.taglineSize ?? 13,
-        position: banner?.responsive?.mobile?.position ?? 'center',
-        verticalAlign: banner?.responsive?.mobile?.verticalAlign ?? 'center',
-        maxWidth: banner?.responsive?.mobile?.maxWidth ?? 340,
-        buttonSize: banner?.responsive?.mobile?.buttonSize ?? 'sm',
+      styling: {
+        titleColor: banner?.styling?.titleColor || '#FFFFFF',
+        titleWeight: banner?.styling?.titleWeight || '800',
+        titleLineHeight: banner?.styling?.titleLineHeight || 'tight',
+        titleShadow: banner?.styling?.titleShadow || 'medium',
+        titleOutline: Boolean(banner?.styling?.titleOutline),
+        taglineColor: banner?.styling?.taglineColor || '#F3F4F6',
+        taglineWeight: banner?.styling?.taglineWeight || '500',
+        taglineLineHeight: banner?.styling?.taglineLineHeight || 'normal',
+        taglineShadow: banner?.styling?.taglineShadow || 'subtle',
+        taglineOutline: Boolean(banner?.styling?.taglineOutline),
+        buttonBgColor: banner?.styling?.buttonBgColor || '#C86A37',
+        buttonTextColor: banner?.styling?.buttonTextColor || '#FFFFFF',
+        buttonRadius: banner?.styling?.buttonRadius || 'rounded-xl',
+        contentGap: banner?.styling?.contentGap ?? 12,
+        maxWidth: banner?.styling?.maxWidth ?? 650,
       },
-    },
-  }))
+      responsive: {
+        desktop: {
+          titleSize: banner?.responsive?.desktop?.titleSize ?? 32,
+          taglineSize: banner?.responsive?.desktop?.taglineSize ?? 16,
+          position: banner?.responsive?.desktop?.position ?? 'left',
+          verticalAlign: banner?.responsive?.desktop?.verticalAlign ?? 'center',
+          maxWidth: banner?.responsive?.desktop?.maxWidth ?? 650,
+          buttonSize: banner?.responsive?.desktop?.buttonSize ?? 'md',
+        },
+        tablet: {
+          titleSize: banner?.responsive?.tablet?.titleSize ?? 26,
+          taglineSize: banner?.responsive?.tablet?.taglineSize ?? 14,
+          position: banner?.responsive?.tablet?.position ?? 'left',
+          verticalAlign: banner?.responsive?.tablet?.verticalAlign ?? 'center',
+          maxWidth: banner?.responsive?.tablet?.maxWidth ?? 500,
+          buttonSize: banner?.responsive?.tablet?.buttonSize ?? 'md',
+        },
+        mobile: {
+          titleSize: banner?.responsive?.mobile?.titleSize ?? 20,
+          taglineSize: banner?.responsive?.mobile?.taglineSize ?? 13,
+          position: banner?.responsive?.mobile?.position ?? 'center',
+          verticalAlign: banner?.responsive?.mobile?.verticalAlign ?? 'center',
+          maxWidth: banner?.responsive?.mobile?.maxWidth ?? 340,
+          buttonSize: banner?.responsive?.mobile?.buttonSize ?? 'sm',
+        },
+      },
+    }
+  })
 
   const [activeTab, setActiveTab] = useState('content') // 'content' | 'layout' | 'styling' | 'animations'
   const [devicePreview, setDevicePreview] = useState('desktop') // 'desktop' | 'tablet' | 'mobile'
@@ -365,10 +371,10 @@ export function DynamicBannerEditor({
           </div>
           <div>
             <h2 className="text-lg font-extrabold text-slate-900 dark:text-white">
-              {form.id ? 'Edit Dynamic Banner' : 'Create Dynamic Banner'}
+              {customTitle || (form.id ? 'Edit Dynamic Banner' : 'Create Dynamic Banner')}
             </h2>
             <p className="text-xs text-slate-700 dark:text-slate-300 font-medium">
-              Real-time responsive typography, overlays, animations & multi-device preview.
+              {customSubtitle || 'Real-time responsive typography, overlays, animations & multi-device preview.'}
             </p>
           </div>
         </div>
@@ -448,7 +454,19 @@ export function DynamicBannerEditor({
             type="button"
             size="sm"
             disabled={saving || uploading}
-            onClick={() => onSave(form)}
+            onClick={() => {
+              const finalImage = form.websiteImage || form.image || form.mobileImage || form.url || ''
+              const payload = {
+                ...form,
+                image: finalImage,
+                websiteImage: form.websiteImage || finalImage,
+                mobileImage: form.mobileImage || finalImage,
+                url: form.url || finalImage,
+                buttonLink: form.buttonLink || form.redirectLink || '',
+                redirectLink: form.buttonLink || form.redirectLink || '',
+              }
+              onSave(payload)
+            }}
             className="gap-1.5 text-xs font-extrabold"
           >
             <Check className="size-4" />
@@ -533,30 +551,54 @@ export function DynamicBannerEditor({
                 </Field>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Banner Title
-                  </label>
-                  <Input
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Banner Title (Multiline)
+                    </label>
+                    <span className="text-[11px] font-medium text-slate-500">
+                      Shift+Enter or Enter for new line
+                    </span>
+                  </div>
+                  <textarea
+                    rows={3}
                     value={form.title}
                     onChange={(e) => {
                       setForm((c) => ({ ...c, title: e.target.value }))
                       setReplayKey((k) => k + 1)
                     }}
-                    placeholder="e.g. Get 25% Off First Booking"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation()
+                      }
+                    }}
+                    placeholder="e.g. Professional Home Repair&#10;Services at Your Doorstep"
+                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y transition-all leading-relaxed whitespace-pre-wrap"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Tagline / Subtitle
-                  </label>
-                  <Input
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Tagline / Subtitle (Multiline)
+                    </label>
+                    <span className="text-[11px] font-medium text-slate-500">
+                      Shift+Enter or Enter for new line
+                    </span>
+                  </div>
+                  <textarea
+                    rows={2}
                     value={form.tagline}
                     onChange={(e) => {
                       setForm((c) => ({ ...c, tagline: e.target.value }))
                       setReplayKey((k) => k + 1)
                     }}
-                    placeholder="e.g. Expert doorstep appliance repair with warranty"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.stopPropagation()
+                      }
+                    }}
+                    placeholder="e.g. Expert doorstep appliance repair&#10;with unconditional 30-day warranty"
+                    className="w-full rounded-2xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-y transition-all leading-relaxed whitespace-pre-wrap"
                   />
                 </div>
 
@@ -1590,7 +1632,7 @@ export function DynamicBannerEditor({
                       return (
                         <h2
                           key={`preview-title-${idx}`}
-                          className="font-black tracking-tight leading-tight transition-all duration-300"
+                          className="font-black tracking-tight leading-tight transition-all duration-300 whitespace-pre-line break-words"
                           style={{
                             color: form.styling.titleColor || '#FFFFFF',
                             fontWeight: form.styling.titleWeight || '800',
@@ -1610,7 +1652,7 @@ export function DynamicBannerEditor({
                       return (
                         <p
                           key={`preview-tagline-${idx}`}
-                          className="font-medium transition-all duration-300"
+                          className="font-medium transition-all duration-300 whitespace-pre-line break-words"
                           style={{
                             color: form.styling.taglineColor || '#F3F4F6',
                             fontWeight: form.styling.taglineWeight || '500',

@@ -47,6 +47,7 @@ export const HOME_SECTION_CONTENT_TYPES = [
   { value: 'serviceCategories', label: 'Service Categories' },
   { value: 'services', label: 'Services' },
   { value: 'variations', label: 'Variations' },
+  { value: 'marketplace', label: 'Marketplace Section' },
   { value: 'static', label: 'Custom Content' },
 ]
 
@@ -92,17 +93,89 @@ export function newHomeSectionBannerSlide(partial = {}) {
   const id =
     String(partial.id || '').trim() ||
     `banner_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  const url = String(partial.url || partial.image || partial.websiteImage || partial.mobileImage || '').trim()
   return {
+    ...partial,
     id,
     source: partial.source === 'url' ? 'url' : 'upload',
-    url: String(partial.url || '').trim(),
+    url,
+    image: url,
+    websiteImage: partial.websiteImage || url,
+    mobileImage: partial.mobileImage || url,
     displayOrder: Number(partial.displayOrder) || 0,
     clickAction: String(partial.clickAction || 'none'),
     serviceTypeId: String(partial.serviceTypeId || '').trim(),
     categoryId: String(partial.categoryId || '').trim(),
     serviceCategoryId: String(partial.serviceCategoryId || '').trim(),
     serviceId: String(partial.serviceId || '').trim(),
-    redirectLink: String(partial.redirectLink || '').trim(),
+    redirectLink: String(partial.redirectLink || partial.buttonLink || '').trim(),
+    title: String(partial.title || ''),
+    tagline: String(partial.tagline || ''),
+    buttonText: String(partial.buttonText || ''),
+    buttonLink: String(partial.buttonLink || partial.redirectLink || ''),
+    contentPosition: partial.contentPosition || 'left',
+    contentVerticalAlign: partial.contentVerticalAlign || 'center',
+    elementOrder: Array.isArray(partial.elementOrder) && partial.elementOrder.length > 0
+      ? partial.elementOrder
+      : ['title', 'tagline', 'button'],
+    animations: partial.animations || {
+      title: 'slideUp',
+      tagline: 'slideUp',
+      button: 'fadeIn',
+      duration: 0.6,
+      stagger: 0.15,
+    },
+    overlay: partial.overlay || {
+      enabled: true,
+      color: '#000000',
+      opacity: 45,
+      gradientDirection: 'to-r',
+      gradientIntensity: 70,
+      backdropBlur: false,
+    },
+    styling: partial.styling || {
+      titleColor: '#FFFFFF',
+      titleWeight: '800',
+      titleLineHeight: 'tight',
+      titleShadow: 'medium',
+      titleOutline: false,
+      taglineColor: '#F3F4F6',
+      taglineWeight: '500',
+      taglineLineHeight: 'normal',
+      taglineShadow: 'subtle',
+      taglineOutline: false,
+      buttonBgColor: '#C86A37',
+      buttonTextColor: '#FFFFFF',
+      buttonRadius: 'rounded-xl',
+      contentGap: 12,
+      maxWidth: 650,
+    },
+    responsive: partial.responsive || {
+      desktop: {
+        titleSize: 32,
+        taglineSize: 16,
+        position: 'left',
+        verticalAlign: 'center',
+        buttonSize: 'md',
+        maxWidth: 650,
+      },
+      tablet: {
+        titleSize: 26,
+        taglineSize: 14,
+        position: 'left',
+        verticalAlign: 'center',
+        buttonSize: 'md',
+        maxWidth: 500,
+      },
+      mobile: {
+        titleSize: 20,
+        taglineSize: 13,
+        position: 'center',
+        verticalAlign: 'center',
+        buttonSize: 'sm',
+        maxWidth: 340,
+      },
+    },
   }
 }
 
@@ -121,11 +194,26 @@ export function normalizeSectionBottomSpacing(raw) {
   return Math.min(100, Math.max(0, Math.round(n)))
 }
 
+export function normalizeMarketplaceItems(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw.map((item, idx) => ({
+    id: String(item.id || `mkt_${Date.now()}_${idx}`),
+    itemType: String(item.itemType || 'service'),
+    targetId: String(item.targetId || ''),
+    title: String(item.title || ''),
+    image: String(item.image || ''),
+    visible: item.visible !== false,
+    displayOrder: Number(item.displayOrder) || idx + 1,
+    badge: String(item.badge || ''),
+    styling: typeof item.styling === 'object' && item.styling ? item.styling : {},
+  }))
+}
+
 export function normalizeHomeSectionBannerImages(raw) {
   if (!Array.isArray(raw)) return []
   return raw
     .map((row, i) => newHomeSectionBannerSlide({ ...row, displayOrder: row.displayOrder ?? i + 1 }))
-    .filter((row) => row.url)
+    .filter((row) => row.url || row.image || row.websiteImage || row.mobileImage)
     .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
     .map((row, i) => ({ ...row, displayOrder: i + 1 }))
 }
@@ -218,6 +306,7 @@ export function emptyHomeSectionForm(serviceTypeId = '') {
     categoryId: '',
     serviceCategoryId: '',
     images: [],
+    items: [],
     settings: {
       height: 220,
       imageWidth: 'fit',
@@ -264,7 +353,7 @@ export function normalizeHomeSectionPayload(input) {
     ? [...new Set(input.itemIds.map((id) => String(id || '').trim()).filter(Boolean))]
     : []
 
-  const needsManualItems = !['static', 'search', 'banners', 'fullWidthBanner'].includes(contentType)
+  const needsManualItems = !['static', 'search', 'banners', 'fullWidthBanner', 'marketplace'].includes(contentType)
   if (needsManualItems && selectionMode === 'manual' && itemIds.length === 0) {
     throw new Error('Select at least one item for manual sections.')
   }
@@ -314,6 +403,7 @@ export function normalizeHomeSectionPayload(input) {
     categoryId: String(input.categoryId || '').trim(),
     serviceCategoryId: String(input.serviceCategoryId || '').trim(),
     ...(isBannerType ? { images } : {}),
+    ...(contentType === 'marketplace' ? { items: normalizeMarketplaceItems(input.items) } : {}),
     settings: {
       height: Number.isFinite(height) && height > 0 ? (height <= 188 ? 220 : height) : 220,
       imageWidth: String(settingsIn.imageWidth || (contentType === 'fullWidthBanner' ? 'fit' : 'full')).trim(),

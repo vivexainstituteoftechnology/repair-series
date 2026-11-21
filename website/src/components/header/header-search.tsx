@@ -8,9 +8,16 @@ import { useRotatingSearchPlaceholder } from "@/lib/search/use-rotating-placehol
 import { useCatalog } from "@/context/catalog-context";
 import { searchCatalog } from "@/lib/search/catalog-search";
 import { getCategoryPath, getServicePath } from "@/lib/catalog/slug";
+import { useServiceModal } from "@/context/service-modal-context";
 
-export function HeaderSearch() {
+type HeaderSearchProps = {
+  variant?: "default" | "onTheme";
+  className?: string;
+};
+
+export function HeaderSearch({ variant = "default", className = "" }: HeaderSearchProps) {
   const router = useRouter();
+  const { openServiceModal } = useServiceModal();
   const { services, categories } = useCatalog();
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -19,6 +26,8 @@ export function HeaderSearch() {
   const rotatingPlaceholder = useRotatingSearchPlaceholder(
     focused || query.trim().length > 0,
   );
+
+  const isTheme = variant === "onTheme";
 
   const results = useMemo(
     () => searchCatalog(query, services, categories, 6),
@@ -44,9 +53,15 @@ export function HeaderSearch() {
   }, [query, router]);
 
   return (
-    <div ref={wrapRef} className="relative flex-1 max-w-xl">
+    <div ref={wrapRef} className={`relative flex-1 max-w-xl ${className}`}>
       {/* Urban Company Rounded Pill Search Bar */}
-      <div className="relative flex h-11 w-full items-center gap-3 rounded-full border border-slate-200/90 bg-slate-50/70 hover:bg-white focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-[#C86A37]/15 px-4 transition-all">
+      <div
+        className={`relative flex h-11 w-full items-center gap-3 rounded-full border px-4 transition-all ${
+          isTheme
+            ? "border-white/30 bg-white text-slate-900 shadow-xs focus-within:ring-2 focus-within:ring-white/40"
+            : "border-slate-200/90 bg-white/95 backdrop-blur-md hover:bg-white focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-[#C86A37]/15 shadow-xs"
+        }`}
+      >
         <Search className="size-4 shrink-0 text-slate-400 pointer-events-none" />
         <input
           type="text"
@@ -96,8 +111,12 @@ export function HeaderSearch() {
                 <Link
                   key={s.id}
                   href={getServicePath(s)}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 transition-colors hover:bg-[#FFF7ED] hover:text-[#C86A37]"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setOpen(false);
+                    openServiceModal(s);
+                  }}
+                  className="flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 transition-colors hover:bg-[#FFF7ED] hover:text-[#C86A37] cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5 truncate">
                     <div className="flex size-7 items-center justify-center rounded-lg bg-slate-100 text-slate-500 shrink-0">

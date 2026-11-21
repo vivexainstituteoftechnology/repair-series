@@ -28,6 +28,7 @@ import { DynamicHomeSections } from "@/components/home/dynamic-home-sections";
 import { AddToCartButton } from "@/components/services/add-to-cart-button";
 import { ServicePrice } from "@/components/services/service-price";
 import { getServicePath } from "@/lib/catalog/slug";
+import { useServiceModal } from "@/context/service-modal-context";
 import { serviceHasVariations, getActiveVariations } from "@/lib/services/pricing";
 import { getDb } from "@/lib/firebase/firestore";
 import { useLocation } from "@/context/location-context";
@@ -127,6 +128,7 @@ function CategoryIcon({
 
 /** Horizontal service card matching reference app ServiceCard.js */
 function MobileServiceCard({ service }: { service: ServiceDoc }) {
+  const { openServiceModal } = useServiceModal();
   const name = service.name || service.title || "Service";
   const desc =
     service.description || "Expert service and maintenance. Book a slot today.";
@@ -139,7 +141,11 @@ function MobileServiceCard({ service }: { service: ServiceDoc }) {
     <div className="group relative flex items-start gap-3 p-3.5 rounded-[22px] bg-white border border-[#E8E4E0] shadow-[0_6px_16px_rgba(0,0,0,0.05)] mb-3.5 transition-all duration-200 active:scale-[0.985] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
       <Link
         href={serviceHref}
-        className="w-[100px] h-[100px] min-w-[100px] rounded-2xl overflow-hidden bg-[#F4F5F7] shrink-0 relative block"
+        onClick={(e) => {
+          e.preventDefault();
+          openServiceModal(service);
+        }}
+        className="w-[100px] h-[100px] min-w-[100px] rounded-2xl overflow-hidden bg-[#F4F5F7] shrink-0 relative block cursor-pointer"
       >
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -157,7 +163,14 @@ function MobileServiceCard({ service }: { service: ServiceDoc }) {
       </Link>
       <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
         <div>
-          <Link href={serviceHref} className="block">
+          <Link
+            href={serviceHref}
+            onClick={(e) => {
+              e.preventDefault();
+              openServiceModal(service);
+            }}
+            className="block cursor-pointer"
+          >
             <h4 className="text-sm font-bold text-[#1A1A1A] line-clamp-2 leading-snug hover:text-[#C86A37] transition-colors">
               {name}
             </h4>

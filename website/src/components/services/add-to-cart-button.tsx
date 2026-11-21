@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart, ArrowRight } from "lucide-react";
 import type { ServiceDoc } from "@/lib/booking/types";
 import { useCart } from "@/context/cart-context";
+import { useServiceModal } from "@/context/service-modal-context";
 import { buildLineId } from "@/lib/cart/storage";
 import { getServicePath } from "@/lib/catalog/slug";
 import {
@@ -31,6 +32,7 @@ export function AddToCartButton({
 }: AddToCartButtonProps) {
   const router = useRouter();
   const { items, addItem, updateQuantity } = useCart();
+  const { openServiceModal } = useServiceModal();
   const [error, setError] = useState("");
 
   const hasVar = serviceHasVariations(service);
@@ -64,9 +66,9 @@ export function AddToCartButton({
     e.stopPropagation();
     setError("");
 
-    // If service has multiple selectable variations and none specified, guide user to service detail
+    // If service has multiple selectable variations and none specified, open bottom-sheet modal
     if (hasVar && !variationId && variations.length > 1) {
-      router.push(getServicePath(service));
+      openServiceModal(service);
       return;
     }
 
@@ -127,9 +129,9 @@ export function AddToCartButton({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            router.push(getServicePath(service));
+            openServiceModal(service);
           }}
-          className={`inline-flex items-center justify-center rounded-lg bg-white px-3.5 py-1 text-xs sm:text-sm font-semibold text-[#C86A37] shadow-[0_2px_8px_rgba(0,0,0,0.14)] border border-slate-200/80 hover:bg-slate-50 active:scale-95 transition-all duration-200 ${className}`}
+          className={`inline-flex items-center justify-center rounded-lg bg-white min-w-[66px] h-[32px] px-3.5 text-sm font-bold text-[#5B21B6] shadow-[0_2px_8px_rgba(0,0,0,0.10)] border border-slate-200/90 hover:bg-purple-50/50 active:scale-95 transition-all duration-200 ${className}`}
         >
           Add
         </button>
@@ -142,7 +144,7 @@ export function AddToCartButton({
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          router.push(getServicePath(service));
+          openServiceModal(service);
         }}
         className={`inline-flex items-center justify-center gap-1.5 rounded-xl border border-[#C86A37]/35 bg-white font-bold text-[#C86A37] shadow-xs transition hover:bg-[#C86A37] hover:text-white ${
           isSmall ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm"
@@ -160,7 +162,7 @@ export function AddToCartButton({
       return (
         <div className={`relative ${className}`}>
           <div
-            className="inline-flex items-center rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.16)] border border-slate-200/80 h-7 sm:h-7.5 select-none"
+            className="inline-flex items-center rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.14)] border border-slate-200 h-7 sm:h-8 select-none"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -170,18 +172,18 @@ export function AddToCartButton({
               type="button"
               onClick={handleMinus}
               aria-label="Decrease quantity"
-              className="flex items-center justify-center text-[#C86A37] hover:bg-slate-100 active:scale-90 transition-transform w-6 sm:w-7 h-full"
+              className="flex items-center justify-center text-[#5B21B6] hover:bg-purple-50 active:scale-90 transition-transform w-7 sm:w-8 h-full"
             >
               <Minus className="size-3" strokeWidth={2.5} />
             </button>
-            <span className="text-center font-bold text-[#C86A37] tabular-nums text-xs px-1 min-w-[18px]">
+            <span className="text-center font-bold text-[#5B21B6] tabular-nums text-xs sm:text-sm px-1.5 min-w-[20px]">
               {quantity}
             </span>
             <button
               type="button"
               onClick={handlePlus}
               aria-label="Increase quantity"
-              className="flex items-center justify-center text-[#C86A37] hover:bg-slate-100 active:scale-90 transition-transform w-6 sm:w-7 h-full"
+              className="flex items-center justify-center text-[#5B21B6] hover:bg-purple-50 active:scale-90 transition-transform w-7 sm:w-8 h-full"
             >
               <Plus className="size-3" strokeWidth={2.5} />
             </button>
@@ -243,7 +245,7 @@ export function AddToCartButton({
         <button
           type="button"
           onClick={handleInitialAdd}
-          className="inline-flex items-center justify-center rounded-lg bg-white px-3.5 py-1 text-xs sm:text-sm font-semibold text-[#C86A37] shadow-[0_2px_8px_rgba(0,0,0,0.14)] border border-slate-200/80 hover:bg-slate-50 active:scale-95 transition-all duration-200"
+          className="inline-flex items-center justify-center rounded-lg bg-white min-w-[66px] h-[32px] px-3.5 text-sm font-bold text-[#5B21B6] shadow-[0_2px_8px_rgba(0,0,0,0.10)] border border-slate-200/90 hover:bg-purple-50/50 active:scale-95 transition-all duration-200"
         >
           Add
         </button>

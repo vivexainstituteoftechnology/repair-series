@@ -37,6 +37,7 @@ import {
 import { PromoBannerSection } from "@/components/home/promo-banner";
 import { resolveBannerSectionsForCategory } from "@/lib/banners/sections";
 import { ServiceReviewsSection } from "@/components/reviews/service-reviews-section";
+import { useServiceModal } from "@/context/service-modal-context";
 
 function getServiceName(s: ServiceDoc) {
   return s.name ?? s.title ?? "Service";
@@ -88,6 +89,7 @@ function ProcessStepImage({ src, alt }: { src: string; alt: string }) {
 
 export function ServiceDetail({ serviceIdOrSlug }: { serviceIdOrSlug: string }) {
   const router = useRouter();
+  const { openServiceModal } = useServiceModal();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [service, setService] = useState<ServiceDoc | null>(null);
@@ -120,13 +122,9 @@ export function ServiceDetail({ serviceIdOrSlug }: { serviceIdOrSlug: string }) 
             router.replace(getComingSoonPath(row as ServiceDoc));
             return;
           }
-          setService(row as ServiceDoc);
-          const active = getActiveVariations(row as ServiceDoc);
-          if (active.length > 0) {
-            setSelectedVariationId(active[0].id);
-          } else {
-            setSelectedVariationId(null);
-          }
+          openServiceModal(row as ServiceDoc);
+          router.replace(`/?service=${serviceIdOrSlug}`);
+          return;
         } else {
           setService(null);
         }

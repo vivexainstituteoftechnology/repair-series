@@ -8,21 +8,27 @@ export function SplashScreen() {
   const [fadeOut, setFadeOut] = useState(false);
 
   useEffect(() => {
-    // Check if splash screen was already shown in this tab session
-    const hasSeenSplash = sessionStorage.getItem("rs_splash_shown");
-    if (hasSeenSplash) {
-      setVisible(false);
-      return;
+    try {
+      const hasSeenSplash = sessionStorage.getItem("rs_splash_shown");
+      if (hasSeenSplash) {
+        setVisible(false);
+        return;
+      }
+    } catch {
+      // sessionStorage might not be accessible in private browsing
     }
 
-    // Show initial splash animation
     const timer1 = setTimeout(() => {
       setFadeOut(true);
     }, 650);
 
     const timer2 = setTimeout(() => {
       setVisible(false);
-      sessionStorage.setItem("rs_splash_shown", "1");
+      try {
+        sessionStorage.setItem("rs_splash_shown", "1");
+      } catch {
+        // ignore
+      }
     }, 950);
 
     return () => {
@@ -35,6 +41,7 @@ export function SplashScreen() {
 
   return (
     <div
+      id="rs-splash-screen"
       className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white transition-opacity duration-300 ease-out select-none ${
         fadeOut ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"
       }`}
@@ -69,6 +76,35 @@ export function SplashScreen() {
           <div className="h-full w-full bg-gradient-to-r from-[#C86A37] via-[#7E1926] to-[#C86A37] animate-pulse" />
         </div>
       </div>
+
+      {/* Vanilla JS Fallback: Guarantees dismissal even if React hydration stalls or fails */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              try {
+                if (sessionStorage.getItem('rs_splash_shown')) {
+                  var el = document.getElementById('rs-splash-screen');
+                  if (el) el.style.display = 'none';
+                  return;
+                }
+              } catch(e) {}
+              setTimeout(function() {
+                var el = document.getElementById('rs-splash-screen');
+                if (el) {
+                  el.style.opacity = '0';
+                  el.style.pointerEvents = 'none';
+                }
+              }, 650);
+              setTimeout(function() {
+                var el = document.getElementById('rs-splash-screen');
+                if (el) el.style.display = 'none';
+                try { sessionStorage.setItem('rs_splash_shown', '1'); } catch(e) {}
+              }, 950);
+            })();
+          `,
+        }}
+      />
     </div>
   );
 }

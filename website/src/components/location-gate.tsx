@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, MapPin, Navigation } from "lucide-react";
+import { Loader2, MapPin, Navigation, X } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { reverseGeocode } from "@/lib/geocode";
@@ -26,6 +26,25 @@ export function LocationGate() {
   const started = useRef(false);
 
   const detect = useCallback(async (force = false) => {
+    const isInsecureNetwork =
+      typeof window !== "undefined" &&
+      !window.isSecureContext &&
+      window.location.hostname !== "localhost" &&
+      window.location.hostname !== "127.0.0.1";
+
+    if (isInsecureNetwork && !force) {
+      // Insecure HTTP on LAN IP (e.g. mobile testing on Wi-Fi):
+      // Browser blocks navigator.geolocation in insecure context.
+      // Auto-dismiss gracefully so homepage is never blocked.
+      try {
+        sessionStorage.setItem(SESSION_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      setPhase("hidden");
+      return;
+    }
+
     const cached = loadStoredUserLocation();
     if (!force && cached && isStoredLocationFresh(cached)) {
       setPhase("detecting");
@@ -109,6 +128,13 @@ export function LocationGate() {
   useEffect(() => {
     if (started.current) return;
     started.current = true;
+    try {
+      if (sessionStorage.getItem(SESSION_KEY)) {
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
     void detect(false);
   }, [detect]);
 
@@ -122,9 +148,26 @@ export function LocationGate() {
 
   if (phase === "hidden") return null;
 
+  const handleDismiss = () => {
+    try {
+      sessionStorage.setItem(SESSION_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setPhase("hidden");
+  };
+
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md animate-in fade-in zoom-in-95 rounded-[28px] border border-white/20 bg-white p-8 shadow-2xl">
+      <div className="relative w-full max-w-md animate-in fade-in zoom-in-95 rounded-[28px] border border-white/20 bg-white p-8 shadow-2xl">
+        <button
+          type="button"
+          onClick={handleDismiss}
+          aria-label="Close location prompt"
+          className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <X className="size-5" />
+        </button>
         {phase === "detecting" ? (
           <>
             <div className="relative mx-auto mb-6 flex size-24 items-center justify-center">
@@ -168,17 +211,18 @@ export function LocationGate() {
               </button>
               <Link
                 href="/book"
-                onClick={() => {
-                  try {
-                    sessionStorage.setItem(SESSION_KEY, "1");
-                  } catch {
-                    /* ignore */
-                  }
-                }}
+                onClick={handleDismiss}
                 className="flex h-12 items-center justify-center rounded-full border border-gray-200 text-sm font-semibold text-[#0a0f1c]"
               >
                 Enter Address Manually
               </Link>
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="h-10 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                Skip for now
+              </button>
             </div>
           </>
         )}

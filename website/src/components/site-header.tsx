@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Container } from "@/components/container";
-import { HeaderAuth } from "@/components/header-auth";
+// import { HeaderAuth } from "@/components/header-auth";
 import { HeaderCartButton } from "@/components/header/header-cart";
 import { HeaderLocationDropdown } from "@/components/header/header-location";
 import { HeaderSearch } from "@/components/header/header-search";
@@ -63,7 +63,7 @@ export function SiteHeader() {
         {/* Right: Cart & Auth Profile */}
         <div className="flex shrink-0 items-center gap-3">
           <HeaderCartButton />
-          <HeaderAuth />
+          {/* <HeaderAuth /> */}
         </div>
       </Container>
     </header>

@@ -10,6 +10,8 @@ export type ServiceVariation = {
   name?: string;
   rating?: number | null;
   originalPrice?: number | null;
+  tagline?: string | null;
+  description?: string | null;
 };
 
 export function getVariationImage(variation: ServiceVariation): string | null {
@@ -56,6 +58,16 @@ export function normalizeVariation(
   );
   const originalPrice =
     Number.isFinite(mrp) && mrp > price ? mrp : null;
+  const tagline =
+    String(
+      raw.tagline ??
+        raw.subtitle ??
+        raw.shortDescription ??
+        raw.shortDesc ??
+        "",
+    ).trim() || null;
+  const description =
+    String(raw.description ?? raw.desc ?? "").trim() || null;
   return {
     id,
     title,
@@ -66,6 +78,8 @@ export function normalizeVariation(
     name: raw.name != null ? String(raw.name) : undefined,
     rating,
     originalPrice,
+    tagline,
+    description,
   };
 }
 

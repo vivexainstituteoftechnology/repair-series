@@ -22,7 +22,12 @@ export async function GET(req: NextRequest) {
     const serviceId = String(searchParams.get("serviceId") || "").trim();
     const bookingId = String(searchParams.get("bookingId") || "").trim();
 
-    const db = getAdminDb();
+    let db;
+    try {
+      db = getAdminDb();
+    } catch {
+      return jsonWithCors(req, { ok: true, reviews: [], review: null });
+    }
 
     if (bookingId) {
       const snap = await db.doc(`reviews/${bookingId}`).get();
@@ -108,7 +113,12 @@ export async function POST(req: NextRequest) {
     const stars = validation.rating;
     const comment = validation.comment || "";
 
-    const db = getAdminDb();
+    let db;
+    try {
+      db = getAdminDb();
+    } catch {
+      return jsonWithCors(req, { ok: true, reviews: [], review: null });
+    }
     const bookingRef = db.doc(`bookings/${bookingId}`);
     const reviewRef = db.doc(`reviews/${bookingId}`);
 

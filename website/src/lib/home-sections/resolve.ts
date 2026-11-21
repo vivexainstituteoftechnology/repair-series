@@ -60,6 +60,18 @@ export function normalizeClientLayout(raw?: string | null) {
  * When `showOnMobileWeb` / `showOnDesktopWeb` are undefined, clients fall back
  * to `showOnWebsite` for backward compatibility.
  */
+export type MarketplaceItem = {
+  id: string;
+  itemType: "service" | "category" | "serviceType" | "serviceCategory" | string;
+  targetId: string;
+  title?: string;
+  image?: string;
+  visible?: boolean;
+  displayOrder?: number;
+  badge?: string;
+  styling?: Record<string, unknown>;
+};
+
 export type HomeSectionDoc = {
   id: string;
   title?: string;
@@ -70,6 +82,7 @@ export type HomeSectionDoc = {
   selectionMode?: HomeSectionSelectionMode | string;
   contentSource?: string;
   itemIds?: string[];
+  items?: MarketplaceItem[];
   columns?: number;
   rows?: number;
   maxItems?: number;
@@ -102,17 +115,9 @@ export type HomeSectionDoc = {
   };
 };
 
-export type HomeSectionBannerSlide = {
-  id: string;
+export type HomeSectionBannerSlide = HomeBannerDoc & {
   source?: "upload" | "url" | string;
   url?: string;
-  displayOrder?: number;
-  clickAction?: string;
-  serviceTypeId?: string;
-  categoryId?: string;
-  serviceCategoryId?: string;
-  serviceId?: string;
-  redirectLink?: string;
 };
 
 export type HomeSectionPlatform =
@@ -489,36 +494,123 @@ export function resolveHomeSectionItems<
 function normalizeSectionBannerImages(raw: HomeSectionBannerSlide[] | undefined) {
   if (!Array.isArray(raw)) return [];
   return raw
-    .map((row, i) => ({
-      id: String(row?.id || `banner_${i}`).trim(),
-      source: row?.source === "url" ? "url" : "upload",
-      url: String(row?.url || "").trim(),
-      displayOrder: Number(row?.displayOrder) || i + 1,
-      clickAction: String(row?.clickAction || "none"),
-      serviceTypeId: String(row?.serviceTypeId || "").trim(),
-      categoryId: String(row?.categoryId || "").trim(),
-      serviceCategoryId: String(row?.serviceCategoryId || "").trim(),
-      serviceId: String(row?.serviceId || "").trim(),
-      redirectLink: String(row?.redirectLink || "").trim(),
-    }))
-    .filter((row) => row.url)
+    .map((row, i) => {
+      const url = String(row?.url || row?.image || row?.websiteImage || row?.mobileImage || "").trim();
+      return {
+        ...row,
+        id: String(row?.id || `banner_${i}`).trim(),
+        source: row?.source === "url" ? "url" : "upload",
+        url,
+        image: url,
+        websiteImage: row?.websiteImage || url,
+        mobileImage: row?.mobileImage || url,
+        displayOrder: Number(row?.displayOrder) || i + 1,
+        clickAction: String(row?.clickAction || "none"),
+        serviceTypeId: String(row?.serviceTypeId || "").trim(),
+        categoryId: String(row?.categoryId || "").trim(),
+        serviceCategoryId: String(row?.serviceCategoryId || "").trim(),
+        serviceId: String(row?.serviceId || "").trim(),
+        redirectLink: String(row?.buttonLink || row?.redirectLink || "").trim(),
+        title: row?.title ? String(row.title) : "",
+        tagline: row?.tagline ? String(row.tagline) : "",
+        buttonText: row?.buttonText ? String(row.buttonText) : "",
+        buttonLink: String(row?.buttonLink || row?.redirectLink || "").trim(),
+        contentPosition: row?.contentPosition || "left",
+        contentVerticalAlign: row?.contentVerticalAlign || "center",
+        elementOrder:
+          Array.isArray(row?.elementOrder) && row.elementOrder.length > 0
+            ? (row.elementOrder as BannerElementOrder[])
+            : (["title", "tagline", "button"] as BannerElementOrder[]),
+        animations: row?.animations || {
+          title: "slideUp",
+          tagline: "slideUp",
+          button: "fadeIn",
+          duration: 0.6,
+          stagger: 0.15,
+        },
+        overlay: row?.overlay || {
+          enabled: true,
+          color: "#000000",
+          opacity: 45,
+          gradientDirection: "to-r",
+          gradientIntensity: 70,
+          backdropBlur: false,
+        },
+        styling: row?.styling || {
+          titleColor: "#FFFFFF",
+          titleWeight: "800",
+          titleLineHeight: "tight",
+          titleShadow: "medium",
+          titleOutline: false,
+          taglineColor: "#F3F4F6",
+          taglineWeight: "500",
+          taglineLineHeight: "normal",
+          taglineShadow: "subtle",
+          taglineOutline: false,
+          buttonBgColor: "#C86A37",
+          buttonTextColor: "#FFFFFF",
+          buttonRadius: "rounded-xl",
+          contentGap: 12,
+          maxWidth: 650,
+        },
+        responsive: row?.responsive || {
+          desktop: {
+            titleSize: 32,
+            taglineSize: 16,
+            position: "left",
+            verticalAlign: "center",
+            buttonSize: "md",
+            maxWidth: 650,
+          },
+          tablet: {
+            titleSize: 26,
+            taglineSize: 14,
+            position: "left",
+            verticalAlign: "center",
+            buttonSize: "md",
+            maxWidth: 500,
+          },
+          mobile: {
+            titleSize: 20,
+            taglineSize: 13,
+            position: "center",
+            verticalAlign: "center",
+            buttonSize: "sm",
+            maxWidth: 340,
+          },
+        },
+      };
+    })
+    .filter((row) => row.url || row.image || row.websiteImage || row.mobileImage)
     .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 }
 
 function mapEmbeddedBannerSlide(img: ReturnType<typeof normalizeSectionBannerImages>[number]): HomeBannerDoc {
-  const url = String(img.url || "").trim();
+  const url = String(img.url || img.image || img.websiteImage || img.mobileImage || "").trim();
   return {
+    ...img,
     id: img.id,
+    title: img.title,
+    tagline: img.tagline,
+    buttonText: img.buttonText,
+    buttonLink: img.buttonLink || img.redirectLink,
+    contentPosition: img.contentPosition,
+    contentVerticalAlign: img.contentVerticalAlign,
+    elementOrder: img.elementOrder,
+    animations: img.animations,
+    overlay: img.overlay,
+    styling: img.styling,
+    responsive: img.responsive,
     image: url,
     imageUrl: url,
-    mobileImage: url,
-    websiteImage: url,
+    mobileImage: img.mobileImage || url,
+    websiteImage: img.websiteImage || url,
     clickAction: img.clickAction || "none",
     serviceTypeId: img.serviceTypeId,
     categoryId: img.categoryId,
     serviceCategoryId: img.serviceCategoryId,
     serviceId: img.serviceId,
-    redirectLink: img.redirectLink,
+    redirectLink: img.buttonLink || img.redirectLink,
   };
 }
 

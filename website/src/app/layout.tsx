@@ -9,6 +9,7 @@ import { LocationGate } from "@/components/location-gate";
 import { AppProviders } from "@/components/providers";
 import { SplashScreen } from "@/components/splash-screen";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { ServiceDetailModal } from "@/components/services/service-detail-modal";
 import {
   buildDefaultDescription,
   buildDefaultTitle,
@@ -97,6 +98,7 @@ export default function RootLayout({
         <AppProviders>
           <SplashScreen />
           <CartDrawer />
+          <ServiceDetailModal />
           <LocationGate />
             <SiteHeader />
           <MobileAppHeader />

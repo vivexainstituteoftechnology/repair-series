@@ -1,23 +1,12 @@
 "use client";
 
 import { collection, getDocs, limit, query, where } from "firebase/firestore";
-import { RemoteImage as Image } from "@/components/remote-image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ServicePrice } from "@/components/services/service-price";
-import { AddToCartButton } from "@/components/services/add-to-cart-button";
+import { UrbanServiceCard } from "@/components/services/urban-service-card";
 import { getDb } from "@/lib/firebase/firestore";
 import type { ServiceDoc } from "@/lib/booking/types";
-import { getServicePath } from "@/lib/catalog/slug";
-import { AlertCircle, ArrowRight, ImageOff, SearchX } from "lucide-react";
-
-function getServiceName(s: ServiceDoc) {
-  return s.name ?? s.title ?? "Service";
-}
-
-function getServiceImage(s: ServiceDoc) {
-  return s.imageUrl ?? s.image ?? null;
-}
+import { AlertCircle, ArrowRight, SearchX } from "lucide-react";
 
 async function fetchServicesForCategory(categoryId: string) {
   const db = getDb();
@@ -144,62 +133,14 @@ export function CategoryServices({ categoryId }: { categoryId: string }) {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s) => {
-            const name = getServiceName(s);
-            const img = getServiceImage(s);
-            const serviceHref = getServicePath(s);
-
-            return (
-              <div
-                key={s.id}
-                className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.02)] transition-all duration-400 hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)]"
-              >
-                {/* Image Container */}
-                <Link href={serviceHref} className="relative aspect-[16/10] w-full overflow-hidden bg-gray-100">
-                  {img ? (
-                    <>
-                      <Image
-                        alt={name}
-                        src={img}
-                        fill
-                        className="object-cover transition-transform duration-700 group-hover:scale-110"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                    </>
-                  ) : (
-                    <div className="flex h-full w-full flex-col items-center justify-center text-[#94a3b8]">
-                      <ImageOff className="mb-2 size-8 opacity-50" />
-                      <span className="text-xs font-medium uppercase tracking-wider opacity-70">No Image</span>
-                    </div>
-                  )}
-                </Link>
-
-                {/* Content Container */}
-                <div className="flex flex-1 flex-col p-5">
-                  <Link href={serviceHref} className="line-clamp-2 text-lg font-bold leading-tight text-[#0a0f1c] transition-colors hover:text-[#C86A37]">
-                    {name}
-                  </Link>
-                  <ServicePrice service={s} className="mt-2" />
-
-                  <p className="mt-3 line-clamp-2 flex-1 text-[0.9rem] leading-relaxed text-[#64748b]">
-                    {s.description ?? "Expert repair, installation, and maintenance. Book a slot today."}
-                  </p>
-
-                  {/* Actions Footer with Add / Book Stepper */}
-                  <div className="mt-5 flex items-center justify-between gap-3 border-t border-gray-100 pt-4">
-                    <Link
-                      href={serviceHref}
-                      className="text-sm font-semibold text-[#64748b] transition-colors hover:text-[#C86A37]"
-                    >
-                      View Details
-                    </Link>
-                    <AddToCartButton service={s} size="sm" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+          {services.map((s) => (
+            <UrbanServiceCard
+              key={s.id}
+              service={s}
+              widthClass="w-full"
+            />
+          ))}
         </div>
       )}
     </section>

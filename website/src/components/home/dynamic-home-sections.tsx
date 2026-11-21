@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Search, Wrench } from "lucide-react";
 import {
@@ -11,7 +12,9 @@ import {
   type HomeBannerDoc,
   type HomeSectionDoc,
   type HomeSectionPlatform,
+  type MarketplaceItem,
 } from "@/lib/home-sections/resolve";
+import { useServiceModal } from "@/context/service-modal-context";
 import {
   getCategoryPath,
   getComingSoonPath,
@@ -219,6 +222,7 @@ function HomeBannerBlock({
   fullWidth?: boolean;
   onSelectServiceType?: (id: string) => void;
 }) {
+  const router = useRouter();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const rows = resolveSectionBannerSlides(section, banners, selectedServiceTypeId);
   if (!rows.length) return null;
@@ -323,7 +327,7 @@ function HomeBannerBlock({
           const node = hasDynamicContent ? (
             <DynamicBannerSlide
               banner={b}
-              replayKey={`${b.id}-${currentIndex}`}
+              replayKey={`${b.id}-${activeIndex}`}
               priority={bIdx === 0}
               className={`w-full ${isFullWidth ? "rounded-none" : "rounded-2xl"} overflow-hidden`}
               style={isFitWidth ? { width: "100%", minHeight: "220px" } : { height }}
@@ -352,17 +356,32 @@ function HomeBannerBlock({
           }
           if (!href) return <div key={`${b.id}-${bIdx}`} className="min-w-full shrink-0 snap-start">{node}</div>;
           const external = href.startsWith("http");
-          if (external) {
-            return (
-              <a key={b.id} href={href} className="min-w-full shrink-0 snap-start focus:outline-none" target="_blank" rel="noreferrer">
-                {node}
-              </a>
-            );
-          }
           return (
-            <Link key={b.id} href={href} className="min-w-full shrink-0 snap-start focus:outline-none">
+            <div
+              key={`${b.id}-${bIdx}`}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (external) {
+                  window.open(href, "_blank", "noopener,noreferrer");
+                } else {
+                  router.push(href);
+                }
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (external) {
+                    window.open(href, "_blank", "noopener,noreferrer");
+                  } else {
+                    router.push(href);
+                  }
+                }
+              }}
+              className="min-w-full shrink-0 snap-start cursor-pointer focus:outline-none"
+            >
               {node}
-            </Link>
+            </div>
           );
         })}
       </div>
@@ -482,6 +501,20 @@ function MobileSections({
                 ) : null}
               </div>
             </section>
+          );
+        }
+
+        if (contentType === "marketplace") {
+          return (
+            <HomeMarketplaceBlock
+              key={section.id}
+              section={section}
+              services={services}
+              categories={categories}
+              serviceTypes={extraCatalog?.serviceTypes}
+              serviceCategories={extraCatalog?.serviceCategories}
+              onSelectServiceType={onSelectServiceType}
+            />
           );
         }
 
@@ -648,6 +681,207 @@ function MobileSections({
   );
 }
 
+function HomeMarketplaceBlock({
+  section,
+  services,
+  categories,
+  serviceTypes = [],
+  serviceCategories = [],
+  onSelectServiceType,
+}: {
+  section: HomeSectionDoc;
+  services: ServiceDoc[];
+  categories: CategoryDoc[];
+  serviceTypes?: CategoryDoc[];
+  serviceCategories?: CategoryDoc[];
+  onSelectServiceType?: (id: string) => void;
+}) {
+  const { openServiceModal } = useServiceModal();
+  const rawItems = Array.isArray(section.items) ? section.items : [];
+  const visibleItems = rawItems.filter((it) => it.visible !== false);
+  if (!visibleItems.length) return null;
+
+  const layout = normalizeClientLayout(section.layout);
+  const columns =
+    layout === "grid2" ? 2 : Math.min(4, Math.max(1, Number(section.columns) || 4));
+  const sliderLayout = layout === "slider" || layout === "autoSlider";
+
+  const renderMarketplaceItem = (item: MarketplaceItem, idx: number) => {
+    // 1. Service Item -> Slide-Up Detail Modal
+    if (item.itemType === "service") {
+      const dbService = services.find((s) => s.id === item.targetId);
+      const serviceObj: ServiceDoc = dbService || {
+        id: item.targetId,
+        name: item.title,
+        title: item.title,
+        image: item.image,
+      };
+
+      return (
+        <UrbanServiceCard
+          key={item.id || `${item.targetId}-${idx}`}
+          service={serviceObj as never}
+          badge={item.badge || null}
+          widthClass={sliderLayout ? CAROUSEL_CARD_WIDTH : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            openServiceModal(serviceObj as never);
+          }}
+        />
+      );
+    }
+
+    // 2. Category Item -> Category Page
+    if (item.itemType === "category") {
+      const dbCat = categories.find((c) => c.id === item.targetId);
+      const title = item.title || dbCat?.name || dbCat?.title || "Category";
+      const img =
+        item.image || dbCat?.homeImage || dbCat?.image || dbCat?.imageUrl || dbCat?.icon || "";
+      const href = `/categories/${item.targetId}`;
+
+      return (
+        <Link
+          key={item.id || `${item.targetId}-${idx}`}
+          href={href}
+          className={`group ${sliderLayout ? CAROUSEL_CARD_WIDTH : ""} flex flex-col rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs hover:border-slate-300 hover:shadow-md transition-all active:scale-[0.98]`}
+        >
+          <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-50 mb-2 flex items-center justify-center p-2">
+            {img ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={img}
+                alt={title}
+                className="size-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+              />
+            ) : (
+              <Wrench className="size-8 text-slate-300" />
+            )}
+            {item.badge ? (
+              <span className="absolute top-2 right-2 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                {item.badge}
+              </span>
+            ) : null}
+          </div>
+          <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-[#C45508] transition-colors line-clamp-1">
+            {title}
+          </span>
+          <span className="text-[11px] text-slate-400 mt-0.5">Explore services →</span>
+        </Link>
+      );
+    }
+
+    // 3. Service Type Item -> Category Modal Popup
+    if (item.itemType === "serviceType") {
+      const dbType = serviceTypes.find((t) => t.id === item.targetId);
+      const title = item.title || dbType?.title || dbType?.name || "Service Type";
+      const img =
+        item.image || dbType?.homeImage || dbType?.image || dbType?.imageUrl || dbType?.icon || "";
+
+      return (
+        <div
+          key={item.id || `${item.targetId}-${idx}`}
+          role="button"
+          tabIndex={0}
+          onClick={(e) => {
+            e.preventDefault();
+            onSelectServiceType?.(item.targetId);
+          }}
+          className={`group ${sliderLayout ? CAROUSEL_CARD_WIDTH : ""} cursor-pointer flex flex-col rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs hover:border-[#C45508]/40 hover:shadow-md transition-all active:scale-[0.98]`}
+        >
+          <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-50 mb-2 flex items-center justify-center p-2">
+            {img ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={img}
+                alt={title}
+                className="size-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+              />
+            ) : (
+              <Wrench className="size-8 text-slate-300" />
+            )}
+            <span className="absolute top-2 left-2 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-200">
+              {item.badge || "Marketplace"}
+            </span>
+          </div>
+          <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-[#C45508] transition-colors line-clamp-1">
+            {title}
+          </span>
+          <span className="text-[11px] text-slate-400 mt-0.5">View all categories →</span>
+        </div>
+      );
+    }
+
+    // 4. Category Type (Service Category) Item -> Category Page
+    const dbSc = serviceCategories.find((sc) => sc.id === item.targetId);
+    const title = item.title || dbSc?.title || dbSc?.name || "Category";
+    const img =
+      item.image || dbSc?.homeImage || dbSc?.image || dbSc?.imageUrl || dbSc?.icon || "";
+    const href = `/categories/${item.targetId}`;
+
+    return (
+      <Link
+        key={item.id || `${item.targetId}-${idx}`}
+        href={href}
+        className={`group ${sliderLayout ? CAROUSEL_CARD_WIDTH : ""} flex flex-col rounded-2xl border border-slate-200/80 bg-white p-3 shadow-xs hover:border-slate-300 hover:shadow-md transition-all active:scale-[0.98]`}
+      >
+        <div className="relative aspect-square w-full rounded-xl overflow-hidden bg-slate-50 mb-2 flex items-center justify-center p-2">
+          {img ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={img}
+              alt={title}
+              className="size-full object-cover rounded-lg group-hover:scale-105 transition-transform"
+            />
+          ) : (
+            <Wrench className="size-8 text-slate-300" />
+          )}
+          {item.badge ? (
+            <span className="absolute top-2 right-2 rounded-full bg-purple-50 px-2 py-0.5 text-[10px] font-bold text-purple-700 border border-purple-200">
+              {item.badge}
+            </span>
+          ) : null}
+        </div>
+        <span className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-[#C45508] transition-colors line-clamp-1">
+          {title}
+        </span>
+        <span className="text-[11px] text-slate-400 mt-0.5">Browse services →</span>
+      </Link>
+    );
+  };
+
+  return (
+    <section className="py-6 sm:py-8">
+      <div className="w-full">
+        {/* Header */}
+        <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+          <div>
+            <span className="mb-1 block text-xs font-black uppercase tracking-wider text-[#C45508]">
+              Marketplace
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+              {section.title}
+            </h2>
+            {section.subtitle ? (
+              <p className="mt-1 text-sm text-slate-500">{section.subtitle}</p>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Layout */}
+        {sliderLayout ? (
+          <ServiceCarousel>
+            {visibleItems.map((item, idx) => renderMarketplaceItem(item, idx))}
+          </ServiceCarousel>
+        ) : (
+          <div className={`grid gap-4 sm:gap-6 ${desktopGridCols(columns)}`}>
+            {visibleItems.map((item, idx) => renderMarketplaceItem(item, idx))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function DesktopSections({
   sections,
   categories,
@@ -755,6 +989,20 @@ function DesktopSections({
                 ) : null}
               </div>
             </section>
+          );
+        }
+
+        if (contentType === "marketplace") {
+          return (
+            <HomeMarketplaceBlock
+              key={section.id}
+              section={section}
+              services={services}
+              categories={categories}
+              serviceTypes={extraCatalog?.serviceTypes}
+              serviceCategories={extraCatalog?.serviceCategories}
+              onSelectServiceType={onSelectServiceType}
+            />
           );
         }
 

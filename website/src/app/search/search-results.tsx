@@ -4,18 +4,19 @@ import Link from "next/link";
 import { use, useMemo } from "react";
 import { Search } from "lucide-react";
 import { Container } from "@/components/container";
-import { ServicePrice } from "@/components/services/service-price";
-import { AddToCartButton } from "@/components/services/add-to-cart-button";
+import { UrbanServiceCard } from "@/components/services/urban-service-card";
 import { useCatalog } from "@/context/catalog-context";
 import { getCategoryPath, getServicePath } from "@/lib/catalog/slug";
 import { searchCatalog } from "@/lib/search/catalog-search";
 import { SectionPromoBanner } from "@/components/home/promo-banner";
+import { useServiceModal } from "@/context/service-modal-context";
 
 export default function SearchResultsClient({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string; type?: string }>;
 }) {
+  const { openServiceModal } = useServiceModal();
   const { q: rawQ, type: rawType } = use(searchParams);
   const q = String(rawQ ?? "").trim();
   const typeId = String(rawType ?? "").trim();
@@ -65,26 +66,9 @@ export default function SearchResultsClient({
             {results.services.length > 0 ? (
               <section>
                 <h2 className="mb-4 text-xs font-black uppercase tracking-wider text-slate-400">Services ({results.services.length})</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
                   {results.services.map((s) => (
-                    <div
-                      key={s.id}
-                      className="flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs transition hover:-translate-y-0.5 hover:shadow-md hover:border-slate-300"
-                    >
-                      <Link href={getServicePath(s)} className="block">
-                        <div className="font-bold text-slate-900 hover:text-[#C86A37] transition-colors">{s.name ?? s.title}</div>
-                        <ServicePrice service={s} className="mt-1 font-bold text-slate-900" />
-                      </Link>
-                      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                        <Link
-                          href={getServicePath(s)}
-                          className="text-xs font-bold text-slate-500 hover:text-[#C86A37] transition-colors"
-                        >
-                          View Details
-                        </Link>
-                        <AddToCartButton service={s} size="sm" />
-                      </div>
-                    </div>
+                    <UrbanServiceCard key={s.id} service={s} widthClass="w-full" />
                   ))}
                 </div>
               </section>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Container } from "@/components/container";
 import { DashboardNav } from "@/components/dashboard/dashboard-nav";
@@ -14,6 +14,7 @@ export default function DashboardLayout({
 }) {
   const { user, loading, isBlocked } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!loading && !user) {
@@ -48,6 +49,13 @@ export default function DashboardLayout({
         </div>
       </Container>
     );
+  }
+
+  // Profile page has its own dedicated desktop and mobile view
+  const isProfilePage = pathname === "/dashboard/profile";
+
+  if (isProfilePage) {
+    return <div className="min-h-[calc(100vh-140px)]">{children}</div>;
   }
 
   return (
