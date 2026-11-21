@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from "next";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
 import { SiteFooter } from "@/components/site-footer";
+import Dock from "@/components/dock";
 import { SiteHeader } from "@/components/site-header";
 import { MobileAppHeader } from "@/components/mobile-app-header";
 import { LocationGate } from "@/components/location-gate";
-import { MobileBottomNav } from "@/components/mobile-app-chrome";
 import { AppProviders } from "@/components/providers";
 import { SplashScreen } from "@/components/splash-screen";
 import { CartDrawer } from "@/components/cart/cart-drawer";
@@ -98,13 +98,13 @@ export default function RootLayout({
           <SplashScreen />
           <CartDrawer />
           <LocationGate />
-          <SiteHeader />
+            <SiteHeader />
           <MobileAppHeader />
-          <main className="flex-1 pb-[calc(76px+env(safe-area-inset-bottom,0px))] md:pb-0">{children}</main>
+          <main className="flex-1 pb-24 sm:pb-28">{children}</main>
           <div className="hidden md:block">
             <SiteFooter />
           </div>
-          <MobileBottomNav />
+          <Dock />
         </AppProviders>
       </body>
     </html>

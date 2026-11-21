@@ -121,9 +121,76 @@ export type HomeSectionPlatform =
   | "website"
   | "app";
 
+export type BannerElementOrder = "title" | "tagline" | "button";
+
+export type BannerAnimationType = "none" | "slideUp" | "slideDown" | "slideLeft" | "slideRight" | "fadeIn";
+
+export type BannerTextShadow = "none" | "subtle" | "medium" | "strong" | "glow";
+
+export type BannerOverlay = {
+  enabled?: boolean;
+  color?: string;
+  opacity?: number;
+  gradientDirection?: "none" | "to-r" | "to-l" | "to-t" | "to-b" | "to-br" | "to-tr" | "radial";
+  gradientIntensity?: number;
+  backdropBlur?: boolean;
+};
+
+export type BannerStyling = {
+  titleColor?: string;
+  titleWeight?: string;
+  titleLineHeight?: string;
+  titleShadow?: BannerTextShadow;
+  titleOutline?: boolean;
+  taglineColor?: string;
+  taglineWeight?: string;
+  taglineLineHeight?: string;
+  taglineShadow?: BannerTextShadow;
+  taglineOutline?: boolean;
+  buttonBgColor?: string;
+  buttonTextColor?: string;
+  buttonRadius?: string;
+  buttonVariant?: "solid" | "outline" | "glass";
+  contentGap?: number;
+  maxWidth?: number;
+};
+
+export type BannerDeviceSettings = {
+  titleSize?: number;
+  taglineSize?: number;
+  position?: "left" | "center" | "right";
+  verticalAlign?: "top" | "center" | "bottom";
+  maxWidth?: number;
+  buttonSize?: "sm" | "md" | "lg";
+};
+
+export type BannerResponsive = {
+  desktop?: BannerDeviceSettings;
+  tablet?: BannerDeviceSettings;
+  mobile?: BannerDeviceSettings;
+};
+
+export type BannerAnimations = {
+  title?: BannerAnimationType;
+  tagline?: BannerAnimationType;
+  button?: BannerAnimationType;
+  duration?: number;
+  stagger?: number;
+};
+
 export type HomeBannerDoc = {
   id: string;
   title?: string;
+  tagline?: string;
+  buttonText?: string;
+  buttonLink?: string;
+  contentPosition?: "left" | "center" | "right";
+  contentVerticalAlign?: "top" | "center" | "bottom";
+  elementOrder?: BannerElementOrder[];
+  animations?: BannerAnimations;
+  overlay?: BannerOverlay;
+  styling?: BannerStyling;
+  responsive?: BannerResponsive;
   image?: string;
   mobileImage?: string;
   websiteImage?: string;

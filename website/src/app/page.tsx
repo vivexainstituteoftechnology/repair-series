@@ -53,6 +53,7 @@ export default function HomePage() {
     <>
       <HomeJsonLd faqs={HOME_FAQS} />
       <HomePageClient />
+      
     </>
   );
 }

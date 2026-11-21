@@ -17,6 +17,7 @@ type AddToCartButtonProps = {
   variationId?: string | null;
   className?: string;
   size?: "sm" | "md";
+  variant?: "default" | "urbanFloating";
   showViewOptionsOnly?: boolean;
 };
 
@@ -25,6 +26,7 @@ export function AddToCartButton({
   variationId,
   className = "",
   size = "md",
+  variant = "default",
   showViewOptionsOnly = false,
 }: AddToCartButtonProps) {
   const router = useRouter();
@@ -118,6 +120,22 @@ export function AddToCartButton({
 
   // If service has multiple variations and user is on a card (not detail page with variation selected)
   if (hasVar && !variationId && variations.length > 1 && (showViewOptionsOnly || quantity === 0)) {
+    if (variant === "urbanFloating") {
+      return (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            router.push(getServicePath(service));
+          }}
+          className={`inline-flex items-center justify-center rounded-lg bg-white px-3.5 py-1 text-xs sm:text-sm font-semibold text-[#C86A37] shadow-[0_2px_8px_rgba(0,0,0,0.14)] border border-slate-200/80 hover:bg-slate-50 active:scale-95 transition-all duration-200 ${className}`}
+        >
+          Add
+        </button>
+      );
+    }
+
     return (
       <button
         type="button"
@@ -138,6 +156,45 @@ export function AddToCartButton({
 
   // Active Stepper state when item is in cart
   if (quantity > 0) {
+    if (variant === "urbanFloating") {
+      return (
+        <div className={`relative ${className}`}>
+          <div
+            className="inline-flex items-center rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.16)] border border-slate-200/80 h-7 sm:h-7.5 select-none"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleMinus}
+              aria-label="Decrease quantity"
+              className="flex items-center justify-center text-[#C86A37] hover:bg-slate-100 active:scale-90 transition-transform w-6 sm:w-7 h-full"
+            >
+              <Minus className="size-3" strokeWidth={2.5} />
+            </button>
+            <span className="text-center font-bold text-[#C86A37] tabular-nums text-xs px-1 min-w-[18px]">
+              {quantity}
+            </span>
+            <button
+              type="button"
+              onClick={handlePlus}
+              aria-label="Increase quantity"
+              className="flex items-center justify-center text-[#C86A37] hover:bg-slate-100 active:scale-90 transition-transform w-6 sm:w-7 h-full"
+            >
+              <Plus className="size-3" strokeWidth={2.5} />
+            </button>
+          </div>
+          {error ? (
+            <span className="absolute top-full right-0 text-[10px] text-red-600 mt-1 whitespace-nowrap bg-white px-1 rounded shadow">
+              {error}
+            </span>
+          ) : null}
+        </div>
+      );
+    }
+
     return (
       <div className={`flex flex-col items-start ${className}`}>
         <div
@@ -180,6 +237,25 @@ export function AddToCartButton({
   }
 
   // Initial State: + Add / Book
+  if (variant === "urbanFloating") {
+    return (
+      <div className={`relative ${className}`}>
+        <button
+          type="button"
+          onClick={handleInitialAdd}
+          className="inline-flex items-center justify-center rounded-lg bg-white px-3.5 py-1 text-xs sm:text-sm font-semibold text-[#C86A37] shadow-[0_2px_8px_rgba(0,0,0,0.14)] border border-slate-200/80 hover:bg-slate-50 active:scale-95 transition-all duration-200"
+        >
+          Add
+        </button>
+        {error ? (
+          <span className="absolute top-full right-0 text-[10px] text-red-600 mt-1 whitespace-nowrap bg-white px-1 rounded shadow">
+            {error}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className={`flex flex-col items-start ${className}`}>
       <button

@@ -1,31 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Plus, Trash2, Upload, Link2 } from 'lucide-react'
+import { Pencil, Plus, Trash2, Sparkles, MoveHorizontal, Sliders } from 'lucide-react'
 import { toast } from 'sonner'
-import { Badge, Button, Card, Field, Input, Modal, PageHeader, SearchInput, Select } from '../components/ui'
+import { Badge, Button, Card, PageHeader, SearchInput, Select } from '../components/ui'
 import { BANNER_SECTION_LABELS, BANNER_SECTIONS, normalizeBannerSection } from '../constants/catalog'
-import { BANNER_CLICK_ACTIONS } from '../constants/homeSections'
-import { uploadToCloudinary } from '../services/cloudinary'
 import { useApp } from '../context/useApp'
-import { catalogTitle } from '../utils/catalogHierarchy'
-
-const emptyForm = () => ({
-  id: '',
-  title: '',
-  section: 'home',
-  mobileImage: '',
-  websiteImage: '',
-  image: '',
-  redirectLink: '',
-  displayOrder: 0,
-  enabled: true,
-  startAt: '',
-  endAt: '',
-  serviceTypeId: '',
-  categoryId: '',
-  serviceId: '',
-  clickAction: 'none',
-  slideDuration: 3000,
-})
+import { DynamicBannerEditor } from '../components/DynamicBannerEditor'
 
 const toDateTimeLocal = (ts) => {
   const d = ts?.toDate?.() ? ts.toDate() : ts instanceof Date ? ts : ts ? new Date(ts) : null
@@ -38,11 +17,8 @@ export function BannersPage() {
   const { banners, loading, mutating, upsertBanner, deleteBanner, serviceTypes, categories, services } = useApp()
   const [search, setSearch] = useState('')
   const [sectionFilter, setSectionFilter] = useState('all')
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(emptyForm)
-  const [uploading, setUploading] = useState(false)
-  const [mobileSourceMode, setMobileSourceMode] = useState('upload') // 'upload' | 'url'
-  const [websiteSourceMode, setWebsiteSourceMode] = useState('upload') // 'upload' | 'url'
+  const [editingBanner, setEditingBanner] = useState(null)
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim()
@@ -50,7 +26,7 @@ export function BannersPage() {
       .filter((b) => sectionFilter === 'all' || normalizeBannerSection(b.section) === sectionFilter)
       .filter((b) => {
         if (!q) return true
-        const hay = [b.title, b.section, b.redirectLink, BANNER_SECTION_LABELS[b.section], b.id]
+        const hay = [b.title, b.tagline, b.section, b.redirectLink, b.buttonText, BANNER_SECTION_LABELS[b.section], b.id]
           .join(' ')
           .toLowerCase()
         return hay.includes(q)
@@ -63,42 +39,107 @@ export function BannersPage() {
       })
   }, [banners, search, sectionFilter])
 
-  const reset = () => {
-    setForm(emptyForm())
-    setOpen(false)
-    setUploading(false)
-    setMobileSourceMode('upload')
-    setWebsiteSourceMode('upload')
+  const openNewBanner = () => {
+    setEditingBanner({
+      id: '',
+      title: '',
+      tagline: '',
+      buttonText: 'Book Service',
+      buttonLink: '/services',
+      section: 'home',
+      mobileImage: '',
+      websiteImage: '',
+      image: '',
+      redirectLink: '',
+      displayOrder: (banners?.length || 0) + 1,
+      enabled: true,
+      active: true,
+      startAt: '',
+      endAt: '',
+      serviceTypeId: '',
+      categoryId: '',
+      serviceId: '',
+      clickAction: 'none',
+      slideDuration: 3500,
+      contentPosition: 'left',
+      contentVerticalAlign: 'center',
+      elementOrder: ['title', 'tagline', 'button'],
+      animations: {
+        title: 'slideUp',
+        tagline: 'slideUp',
+        button: 'fadeIn',
+        duration: 0.6,
+        stagger: 0.15,
+      },
+      overlay: {
+        enabled: true,
+        color: '#000000',
+        opacity: 45,
+        gradientDirection: 'to-r',
+        gradientIntensity: 70,
+        backdropBlur: false,
+      },
+      styling: {
+        titleColor: '#FFFFFF',
+        titleWeight: '800',
+        titleLineHeight: 'tight',
+        titleShadow: 'medium',
+        titleOutline: false,
+        taglineColor: '#F3F4F6',
+        taglineWeight: '500',
+        taglineLineHeight: 'normal',
+        taglineShadow: 'subtle',
+        taglineOutline: false,
+        buttonBgColor: '#C86A37',
+        buttonTextColor: '#FFFFFF',
+        buttonRadius: 'rounded-xl',
+        contentGap: 12,
+        maxWidth: 650,
+      },
+      responsive: {
+        desktop: {
+          titleSize: 32,
+          taglineSize: 16,
+          position: 'left',
+          verticalAlign: 'center',
+          buttonSize: 'md',
+          maxWidth: 650,
+        },
+        tablet: {
+          titleSize: 26,
+          taglineSize: 14,
+          position: 'left',
+          verticalAlign: 'center',
+          buttonSize: 'md',
+          maxWidth: 500,
+        },
+        mobile: {
+          titleSize: 20,
+          taglineSize: 13,
+          position: 'center',
+          verticalAlign: 'center',
+          buttonSize: 'sm',
+          maxWidth: 340,
+        },
+      },
+    })
+    setEditorOpen(true)
   }
 
-  const uploadField = async (file, field) => {
-    if (!file) return
-    setUploading(true)
-    try {
-      const url = await uploadToCloudinary(file, {
-        kind: 'banner',
-        section: form.section,
-        bannerId: form.id,
-        slot: field,
-      })
-      setForm((c) => {
-        const next = { ...c, [field]: url }
-        if (!next.image && (field === 'mobileImage' || field === 'websiteImage')) next.image = url
-        return next
-      })
-      toast.success(file.type === 'image/gif' ? 'Animated GIF banner uploaded.' : 'Image banner uploaded.')
-    } catch (err) {
-      toast.error(err?.message || 'Upload failed.')
-    } finally {
-      setUploading(false)
-    }
+  const openEditBanner = (row) => {
+    setEditingBanner({
+      ...row,
+      startAt: toDateTimeLocal(row.startAt),
+      endAt: toDateTimeLocal(row.endAt),
+    })
+    setEditorOpen(true)
   }
 
-  const submit = async (e) => {
-    e.preventDefault()
+  const handleSaveBanner = async (savedBanner) => {
     try {
-      await upsertBanner(form)
-      reset()
+      await upsertBanner(savedBanner)
+      setEditorOpen(false)
+      setEditingBanner(null)
     } catch (err) {
       toast.error(err?.message || 'Could not save banner.')
     }
@@ -107,8 +148,8 @@ export function BannersPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Banners & Offers"
-        description="Manage promotional banners, carousel slides, and animated GIFs for the app and website."
+        title="Banners & Dynamic Offers"
+        description="Build responsive interactive promotional banners with custom overlay text, animations, and live desktop/mobile preview."
         actions={
           <>
             <SearchInput value={search} onChange={setSearch} placeholder="Search banners…" />
@@ -123,14 +164,9 @@ export function BannersPage() {
             <Button
               type="button"
               className="gap-2"
-              onClick={() => {
-                setForm(emptyForm())
-                setMobileSourceMode('upload')
-                setWebsiteSourceMode('upload')
-                setOpen(true)
-              }}
+              onClick={openNewBanner}
             >
-              <Plus className="size-4" /> Add banner
+              <Plus className="size-4" /> Add Dynamic Banner
             </Button>
           </>
         }
@@ -138,7 +174,9 @@ export function BannersPage() {
 
       <Card className="overflow-hidden p-0">
         {loading.banners ? (
-          <div className="flex items-center justify-center p-12 text-sm font-medium text-slate-700 dark:text-slate-300">Loading…</div>
+          <div className="flex items-center justify-center p-12 text-sm font-medium text-slate-700 dark:text-slate-300">
+            Loading banners…
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[880px] border-collapse text-left text-sm">
@@ -146,7 +184,8 @@ export function BannersPage() {
                 <tr>
                   <th className="px-4 py-3 font-bold">Preview</th>
                   <th className="px-4 py-3 font-bold">Section</th>
-                  <th className="px-4 py-3 font-bold">Title</th>
+                  <th className="px-4 py-3 font-bold">Title & Content</th>
+                  <th className="px-4 py-3 font-bold">Position & Overlay</th>
                   <th className="px-4 py-3 font-bold">Order</th>
                   <th className="px-4 py-3 font-bold">Status</th>
                   <th className="px-4 py-3 font-bold text-right">Actions</th>
@@ -154,15 +193,27 @@ export function BannersPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filtered.map((row) => {
-                  const enabled = row.enabled !== false
-                  const thumb = row.mobileImage || row.websiteImage || row.image || row.imageUrl
+                  const enabled = row.enabled !== false && row.active !== false
+                  const thumb = row.websiteImage || row.mobileImage || row.image || row.imageUrl
+                  const hasOverlay = row.overlay?.enabled !== false
+                  const position = row.contentPosition || row.responsive?.desktop?.position || 'left'
+
                   return (
                     <tr key={row.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
                       <td className="px-4 py-3">
                         {thumb ? (
-                          <img src={thumb} alt="" className="h-12 w-24 rounded-lg object-cover" />
+                          <div className="relative h-14 w-28 overflow-hidden rounded-xl bg-slate-100 border border-slate-200 dark:border-slate-800">
+                            <img src={thumb} alt="" className="h-full w-full object-cover" />
+                            {row.title ? (
+                              <div className="absolute inset-0 bg-black/40 p-1 flex items-end">
+                                <span className="line-clamp-1 text-[10px] font-bold text-white drop-shadow-xs">
+                                  {row.title}
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
                         ) : (
-                          <div className="flex h-12 w-24 items-center justify-center rounded-lg bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                          <div className="flex h-14 w-28 items-center justify-center rounded-xl bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-800">
                             No image
                           </div>
                         )}
@@ -170,8 +221,37 @@ export function BannersPage() {
                       <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
                         {BANNER_SECTION_LABELS[row.section] || row.section || '—'}
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200">{row.title || '—'}</td>
-                      <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">{Number(row.displayOrder ?? 0)}</td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-slate-900 dark:text-white">
+                            {row.title || <span className="text-slate-400 font-normal italic">Image only</span>}
+                          </p>
+                          {row.tagline ? (
+                            <p className="text-xs text-slate-500 line-clamp-1 font-medium">{row.tagline}</p>
+                          ) : null}
+                          {row.buttonText ? (
+                            <span className="inline-block mt-1 text-[10px] font-bold text-primary-600 bg-primary-50 dark:bg-primary-950/40 px-2 py-0.5 rounded-md border border-primary-200 dark:border-primary-800">
+                              Button: {row.buttonText}
+                            </span>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-1">
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold capitalize text-slate-700 dark:text-slate-300">
+                            <MoveHorizontal className="size-3 text-slate-400" />
+                            {position}
+                          </span>
+                          <div>
+                            <span className="text-[11px] font-mono text-slate-500">
+                              {hasOverlay ? `Overlay (${row.overlay?.opacity ?? 45}%)` : 'No overlay'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-slate-900 dark:text-white">
+                        {Number(row.displayOrder ?? 0)}
+                      </td>
                       <td className="px-4 py-3">
                         <Badge tone={enabled ? 'success' : 'neutral'}>{enabled ? 'Enabled' : 'Disabled'}</Badge>
                       </td>
@@ -179,36 +259,16 @@ export function BannersPage() {
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
-                            className="rounded-xl border border-slate-200 p-2 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                            onClick={() => {
-                              setForm({
-                                id: row.id,
-                                title: row.title ?? '',
-                                section: normalizeBannerSection(row.section || 'home'),
-                                mobileImage: row.mobileImage || '',
-                                websiteImage: row.websiteImage || '',
-                                image: row.image || row.mobileImage || row.websiteImage || '',
-                                redirectLink: row.redirectLink || '',
-                                displayOrder: Number(row.displayOrder ?? 0),
-                                enabled,
-                                startAt: toDateTimeLocal(row.startAt),
-                                endAt: toDateTimeLocal(row.endAt),
-                                serviceTypeId: row.serviceTypeId || '',
-                                categoryId: row.categoryId || '',
-                                serviceId: row.serviceId || '',
-                                clickAction: row.clickAction || (row.redirectLink ? 'external' : 'none'),
-                                slideDuration: Number(row.slideDuration ?? 3000),
-                              })
-                              setMobileSourceMode(row.mobileImage && !row.mobileImage.includes('res.cloudinary.com') ? 'url' : 'upload')
-                              setWebsiteSourceMode(row.websiteImage && !row.websiteImage.includes('res.cloudinary.com') ? 'url' : 'upload')
-                              setOpen(true)
-                            }}
+                            title="Edit banner with dynamic editor"
+                            className="rounded-xl border border-slate-200 p-2 text-primary-700 hover:bg-primary-50 dark:border-slate-700 dark:text-primary-300 dark:hover:bg-primary-950/40 transition-colors"
+                            onClick={() => openEditBanner(row)}
                           >
                             <Pencil className="size-4" />
                           </button>
                           <button
                             type="button"
-                            className="rounded-xl border border-slate-200 p-2 text-red-600 hover:bg-red-50 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-950/30"
+                            title="Delete banner"
+                            className="rounded-xl border border-slate-200 p-2 text-red-600 hover:bg-red-50 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-950/30 transition-colors"
                             disabled={Boolean(mutating.bannerDelete)}
                             onClick={async () => {
                               if (!window.confirm(`Delete banner for "${BANNER_SECTION_LABELS[row.section] || row.section}"?`)) return
@@ -228,8 +288,8 @@ export function BannersPage() {
                 })}
                 {!filtered.length ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center font-medium text-slate-600 dark:text-slate-400">
-                      No banners yet. Add banners for Home, Services, Bookings, Account, Categories, Coming Soon, and more.
+                    <td colSpan={7} className="px-4 py-12 text-center font-medium text-slate-600 dark:text-slate-400">
+                      No banners found. Click <strong>"Add Dynamic Banner"</strong> above to create your first dynamic banner.
                     </td>
                   </tr>
                 ) : null}
@@ -239,298 +299,25 @@ export function BannersPage() {
         )}
       </Card>
 
-      <Modal open={open} title={form.id ? 'Edit banner' : 'Add banner'} onClose={reset} className="max-w-2xl">
-        <form className="space-y-4" onSubmit={submit}>
-          <Field label="Section">
-            <Select value={form.section} onChange={(e) => setForm((c) => ({ ...c, section: e.target.value }))} required>
-              {BANNER_SECTIONS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="Title (optional)">
-            <Input value={form.title} onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))} placeholder="Summer offer" />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Display order">
-              <Input
-                type="number"
-                value={form.displayOrder}
-                onChange={(e) => setForm((c) => ({ ...c, displayOrder: Number(e.target.value) || 0 }))}
-              />
-            </Field>
-            <Field label="Status">
-              <Select
-                value={form.enabled ? 'true' : 'false'}
-                onChange={(e) => setForm((c) => ({ ...c, enabled: e.target.value === 'true' }))}
-              >
-                <option value="true">Enabled</option>
-                <option value="false">Disabled</option>
-              </Select>
-            </Field>
-          </div>
-          <Field label="Redirect link (optional)">
-            <Input
-              value={form.redirectLink}
-              onChange={(e) => setForm((c) => ({ ...c, redirectLink: e.target.value }))}
-              placeholder="/services or https://…"
+      {/* Dynamic Banner Editor Modal Overlay */}
+      {editorOpen && editingBanner ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/75 backdrop-blur-xs overflow-y-auto">
+          <div className="w-full max-w-7xl animate-in fade-in zoom-in-95 duration-200">
+            <DynamicBannerEditor
+              banner={editingBanner}
+              saving={Boolean(mutating.banner)}
+              onSave={handleSaveBanner}
+              onCancel={() => {
+                setEditorOpen(false)
+                setEditingBanner(null)
+              }}
+              serviceTypes={serviceTypes}
+              categories={categories}
+              services={services}
             />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Click action">
-              <Select
-                value={form.clickAction || 'none'}
-                onChange={(e) => setForm((c) => ({ ...c, clickAction: e.target.value }))}
-              >
-                {BANNER_CLICK_ACTIONS.map((a) => (
-                  <option key={a.value} value={a.value}>
-                    {a.label}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Slide duration (ms)">
-              <Input
-                type="number"
-                value={form.slideDuration}
-                onChange={(e) => setForm((c) => ({ ...c, slideDuration: Number(e.target.value) || 3000 }))}
-              />
-            </Field>
           </div>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Service type (optional)">
-              <Select
-                value={form.serviceTypeId}
-                onChange={(e) => setForm((c) => ({ ...c, serviceTypeId: e.target.value, categoryId: '', serviceId: '' }))}
-              >
-                <option value="">Any</option>
-                {(serviceTypes || []).map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {catalogTitle(t)}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <Field label="Category (optional)">
-              <Select
-                value={form.categoryId}
-                onChange={(e) => setForm((c) => ({ ...c, categoryId: e.target.value, serviceId: '' }))}
-              >
-                <option value="">None</option>
-                {(categories || [])
-                  .filter((c) => !form.serviceTypeId || String(c.serviceTypeId) === form.serviceTypeId)
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {catalogTitle(c)}
-                    </option>
-                  ))}
-              </Select>
-            </Field>
-            <Field label="Service (optional)">
-              <Select
-                value={form.serviceId}
-                onChange={(e) => setForm((c) => ({ ...c, serviceId: e.target.value }))}
-              >
-                <option value="">None</option>
-                {(services || [])
-                  .filter((s) => !form.serviceTypeId || String(s.serviceTypeId) === form.serviceTypeId)
-                  .filter((s) => !form.categoryId || String(s.categoryId) === form.categoryId)
-                  .slice(0, 200)
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {catalogTitle(s)}
-                    </option>
-                  ))}
-              </Select>
-            </Field>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Start at (optional)">
-              <Input
-                type="datetime-local"
-                value={form.startAt || ''}
-                onChange={(e) => setForm((c) => ({ ...c, startAt: e.target.value }))}
-              />
-            </Field>
-            <Field label="End at (optional)">
-              <Input
-                type="datetime-local"
-                value={form.endAt || ''}
-                onChange={(e) => setForm((c) => ({ ...c, endAt: e.target.value }))}
-              />
-            </Field>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Mobile Image / GIF Slot */}
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">Mobile image / GIF</div>
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">File upload or direct URL</div>
-                </div>
-                <div className="inline-flex rounded-lg bg-slate-200 dark:bg-slate-700 p-0.5 text-xs">
-                  <button
-                    type="button"
-                    className={`px-2.5 py-1 rounded-md font-bold transition ${mobileSourceMode === 'upload' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}
-                    onClick={() => setMobileSourceMode('upload')}
-                  >
-                    Upload
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-2.5 py-1 rounded-md font-bold transition ${mobileSourceMode === 'url' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white'}`}
-                    onClick={() => setMobileSourceMode('url')}
-                  >
-                    URL
-                  </button>
-                </div>
-              </div>
-
-              {mobileSourceMode === 'upload' ? (
-                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3">
-                  <input
-                    className="w-full text-xs font-medium text-slate-800 dark:text-slate-200"
-                    type="file"
-                    accept="image/*,image/gif,.gif"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      e.target.value = ''
-                      void uploadField(file, 'mobileImage')
-                    }}
-                  />
-                  <p className="mt-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-400">Supports JPEG, PNG, WebP, and animated GIF (up to 12 MB)</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Input
-                    value={form.mobileImage || ''}
-                    placeholder="https://… (image or .gif URL)"
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setForm((c) => {
-                        const next = { ...c, mobileImage: val }
-                        if (!next.image) next.image = val
-                        return next
-                      })
-                    }}
-                    className="text-xs"
-                  />
-                </div>
-              )}
-
-              {form.mobileImage ? (
-                <div className="relative mt-2 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
-                  <img src={form.mobileImage} alt="" className="h-28 w-full object-cover" />
-                  <button
-                    type="button"
-                    className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 px-2 py-0.5 text-[10px] text-white hover:bg-black/80"
-                    onClick={() =>
-                      setForm((c) => {
-                        const next = { ...c, mobileImage: '' }
-                        if (c.image === c.mobileImage) next.image = c.websiteImage || ''
-                        return next
-                      })
-                    }
-                  >
-                    Clear
-                  </button>
-                </div>
-              ) : null}
-            </div>
-
-            {/* Website Image / GIF Slot */}
-            <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900/60">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-bold text-slate-900 dark:text-white">Website image / GIF</div>
-                  <div className="text-xs font-medium text-slate-600 dark:text-slate-400">File upload or direct URL</div>
-                </div>
-                <div className="inline-flex rounded-lg bg-slate-200 dark:bg-slate-700 p-0.5 text-xs">
-                  <button
-                    type="button"
-                    className={`px-2.5 py-1 rounded-md font-bold transition ${websiteSourceMode === 'upload' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900'}`}
-                    onClick={() => setWebsiteSourceMode('upload')}
-                  >
-                    Upload
-                  </button>
-                  <button
-                    type="button"
-                    className={`px-2.5 py-1 rounded-md font-bold transition ${websiteSourceMode === 'url' ? 'bg-primary-600 text-white shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:text-slate-900'}`}
-                    onClick={() => setWebsiteSourceMode('url')}
-                  >
-                    URL
-                  </button>
-                </div>
-              </div>
-
-              {websiteSourceMode === 'upload' ? (
-                <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3">
-                  <input
-                    className="w-full text-xs font-medium text-slate-800 dark:text-slate-200"
-                    type="file"
-                    accept="image/*,image/gif,.gif"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      e.target.value = ''
-                      void uploadField(file, 'websiteImage')
-                    }}
-                  />
-                  <p className="mt-1.5 text-[11px] font-medium text-slate-600 dark:text-slate-400">Supports JPEG, PNG, WebP, and animated GIF (up to 12 MB)</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Input
-                    value={form.websiteImage || ''}
-                    placeholder="https://… (image or .gif URL)"
-                    onChange={(e) => {
-                      const val = e.target.value
-                      setForm((c) => {
-                        const next = { ...c, websiteImage: val }
-                        if (!next.image) next.image = val
-                        return next
-                      })
-                    }}
-                    className="text-xs"
-                  />
-                </div>
-              )}
-
-              {form.websiteImage ? (
-                <div className="relative mt-2 overflow-hidden rounded-xl border border-[var(--outline-variant)]">
-                  <img src={form.websiteImage} alt="" className="h-28 w-full object-cover" />
-                  <button
-                    type="button"
-                    className="absolute top-1.5 right-1.5 rounded-lg bg-black/60 px-2 py-0.5 text-[10px] text-white hover:bg-black/80"
-                    onClick={() =>
-                      setForm((c) => {
-                        const next = { ...c, websiteImage: '' }
-                        if (c.image === c.websiteImage) next.image = c.mobileImage || ''
-                        return next
-                      })
-                    }
-                  >
-                    Clear
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="ghost" onClick={reset}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={uploading || Boolean(mutating.banner)}>
-              {uploading || mutating.banner ? 'Saving…' : 'Save banner'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        </div>
+      ) : null}
     </div>
   )
 }

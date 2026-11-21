@@ -30,8 +30,8 @@ export function MostBookedSection({ services }: { services: ServiceDoc[] }) {
   if (items.length === 0) return null;
 
   return (
-    <section id="most-booked" className="border-b border-gray-100 bg-white py-16">
-      <Container>
+    <section id="most-booked" className="border-t border-slate-100 py-10">
+      <div className="w-full">
         <div className="mb-8">
           <span className="text-sm font-bold uppercase tracking-wide text-[#C86A37]">
             Trending
@@ -42,7 +42,7 @@ export function MostBookedSection({ services }: { services: ServiceDoc[] }) {
           </p>
         </div>
         <ServiceSlider services={items} />
-      </Container>
+      </div>
     </section>
   );
 }
@@ -60,8 +60,8 @@ export function CleaningEssentialsSection({ services }: { services: ServiceDoc[]
   if (items.length === 0) return null;
 
   return (
-    <section id="cleaning" className="bg-[#f8fafc] py-16">
-      <Container>
+    <section id="cleaning" className="border-t border-slate-100 py-10">
+      <div className="w-full">
         <div className="mb-8">
           <span className="text-sm font-bold uppercase tracking-wide text-[#C86A37]">
             Home Care
@@ -69,7 +69,7 @@ export function CleaningEssentialsSection({ services }: { services: ServiceDoc[]
           <h2 className="mt-1 text-3xl font-bold text-[#0a0f1c]">Cleaning Essentials</h2>
         </div>
         <ServiceSlider services={items} />
-      </Container>
+      </div>
     </section>
   );
 }
@@ -83,8 +83,8 @@ export function ApplianceRepairSection({ services }: { services: ServiceDoc[] })
   if (items.length === 0) return null;
 
   return (
-    <section id="appliance-repair" className="border-b border-gray-100 bg-white py-16">
-      <Container>
+    <section id="appliance-repair" className="border-t border-slate-100 py-10">
+      <div className="w-full">
         <div className="mb-8">
           <span className="text-sm font-bold uppercase tracking-wide text-[#C86A37]">
             Expert Fixes
@@ -94,7 +94,7 @@ export function ApplianceRepairSection({ services }: { services: ServiceDoc[] })
           </h2>
         </div>
         <ServiceSlider services={items} />
-      </Container>
+      </div>
     </section>
   );
 }

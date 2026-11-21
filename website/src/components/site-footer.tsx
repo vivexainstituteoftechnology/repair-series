@@ -40,7 +40,7 @@ function PlayStoreIcon(props: React.SVGProps<SVGSVGElement>) {
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto bg-[#f3f4f6] pt-12 pb-8 text-black">
+    <footer className="mt-auto bg-[#f3f4f6] pt-12 pb-24 sm:pb-28 text-black">
       <Container>
         {/* Top Logo Section */}
         <div className="mb-12">

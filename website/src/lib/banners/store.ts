@@ -1,20 +1,10 @@
 import { collection, limit, onSnapshot, query, type Firestore, type Unsubscribe } from "firebase/firestore";
 import { getDb } from "@/lib/firebase/firestore";
 import { normalizeBannerSection } from "@/lib/banners/sections";
+import type { HomeBannerDoc } from "@/lib/home-sections/resolve";
 
-export type BannerDoc = {
-  id: string;
-  title?: string;
-  section?: string;
-  mobileImage?: string;
-  websiteImage?: string;
-  image?: string;
-  imageUrl?: string;
-  redirectLink?: string;
+export type BannerDoc = HomeBannerDoc & {
   link?: string;
-  displayOrder?: number;
-  enabled?: boolean;
-  active?: boolean;
   startAt?: unknown;
   endAt?: unknown;
   _src?: string;

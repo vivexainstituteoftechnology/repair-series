@@ -19,6 +19,12 @@ import {
 } from "@/lib/catalog/slug";
 import { ServicePrice } from "@/components/services/service-price";
 import { AddToCartButton } from "@/components/services/add-to-cart-button";
+import { UrbanServiceCard } from "@/components/services/urban-service-card";
+import {
+  ServiceCarousel,
+  CAROUSEL_CARD_WIDTH,
+} from "@/components/services/service-carousel";
+import { DynamicBannerSlide } from "@/components/banners/dynamic-banner-slide";
 
 type CategoryDoc = {
   id: string;
@@ -218,7 +224,11 @@ function HomeBannerBlock({
   if (!rows.length) return null;
   const layout = normalizeClientLayout(section.layout);
   const rawHeight = Number(section.settings?.height);
-  const height = rawHeight && rawHeight > 188 ? rawHeight : (layout === "single" ? 190 : 220);
+  const defaultHeight =
+    variant === "desktop"
+      ? (layout === "single" ? 360 : 380)
+      : (layout === "single" ? 230 : 260);
+  const height = rawHeight && rawHeight > 288 ? rawHeight : defaultHeight;
   const list = layout === "single" ? rows.slice(0, 1) : rows;
   const autoplay = section.settings?.autoplay !== false && list.length > 1;
   const manualSwipe = section.settings?.manualSwipe !== false;
@@ -293,7 +303,7 @@ function HomeBannerBlock({
 
   return (
     <div
-      className={isFullWidth ? "w-full px-0 mx-0" : (variant === "mobile" ? "mt-5 px-4" : "mx-auto max-w-6xl px-4 py-8 lg:px-0")}
+      className={isFullWidth ? "w-full px-0 mx-0" : (variant === "mobile" ? "mt-5 px-4" : "w-full py-6")}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
       onTouchStart={() => setIsPaused(true)}
@@ -309,7 +319,16 @@ function HomeBannerBlock({
           const action = String(b.clickAction || "").trim();
           const href = action === "serviceType" ? "" : bannerSlideHref(b);
           const img = b.websiteImage || b.mobileImage || b.image || b.imageUrl || "";
-          const node = (
+          const hasDynamicContent = Boolean(b.title || b.tagline || b.buttonText || b.overlay);
+          const node = hasDynamicContent ? (
+            <DynamicBannerSlide
+              banner={b}
+              replayKey={`${b.id}-${currentIndex}`}
+              priority={bIdx === 0}
+              className={`w-full ${isFullWidth ? "rounded-none" : "rounded-2xl"} overflow-hidden`}
+              style={isFitWidth ? { width: "100%", minHeight: "220px" } : { height }}
+            />
+          ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={img}
@@ -567,41 +586,18 @@ function MobileSections({
                       </span>
                     </Link>
                   ) : (
-                    <Link
+                    <UrbanServiceCard
                       key={`${item.id}-${idx}`}
+                      service={item as ServiceDoc}
                       href={itemHref(section, item)}
+                      badge={badge}
+                      widthClass="w-[160px] sm:w-[180px] shrink-0 snap-start"
                       onClick={(e) => {
                         if (!isServiceTypeItem(section, item)) return;
                         e.preventDefault();
                         onSelectServiceType?.(String(item.id));
                       }}
-                      className="w-[148px] shrink-0 snap-start overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-[#E8E4E0] transition-transform active:scale-95"
-                    >
-                      <div className="aspect-[4/3] bg-[#F4F5F7]">
-                        {itemImage(section, item) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={itemImage(section, item)}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <div className="p-2.5">
-                        <p className="line-clamp-2 text-xs font-bold text-[#1A1A1A]">
-                          {item.name || item.title}
-                        </p>
-                        {badge ? (
-                          <p className="mt-1 text-[10px] font-semibold uppercase text-[#C86A37]">
-                            {badge}
-                          </p>
-                        ) : (
-                          <div className="mt-1 text-[11px] font-semibold text-[#C86A37]">
-                            <ServicePrice service={item as never} />
-                          </div>
-                        )}
-                      </div>
-                    </Link>
+                    />
                   ),
                 )}
               </div>
@@ -629,30 +625,18 @@ function MobileSections({
                       </span>
                     </Link>
                   ) : (
-                    <Link
+                    <UrbanServiceCard
                       key={`${item.id}-${idx}`}
+                      service={item as ServiceDoc}
                       href={itemHref(section, item)}
+                      badge={badge}
+                      widthClass="w-full"
                       onClick={(e) => {
                         if (!isServiceTypeItem(section, item)) return;
                         e.preventDefault();
                         onSelectServiceType?.(String(item.id));
                       }}
-                      className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-[#E8E4E0] transition-transform active:scale-95"
-                    >
-                      <div className="aspect-[4/3] bg-[#F4F5F7]">
-                        {itemImage(section, item) ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={itemImage(section, item)}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <p className="line-clamp-2 p-2 text-xs font-bold text-[#1A1A1A]">
-                        {item.name || item.title}
-                      </p>
-                    </Link>
+                    />
                   ),
                 )}
               </div>
@@ -682,11 +666,7 @@ function DesktopSections({
       {sections.map((section, sectionIdx) => {
         const contentType = sectionContentType(section);
         const layout = normalizeClientLayout(section.layout);
-        const tone = sectionIdx % 2 === 0 ? "muted" : "white";
-        const shell =
-          tone === "muted"
-            ? "border-b border-gray-100 bg-[#f8fafc] py-16 lg:py-20"
-            : "border-b border-gray-100 bg-white py-16 lg:py-20";
+        const shell = "border-t border-slate-100 py-10 lg:py-14";
 
         if (contentType === "search") {
           return (
@@ -737,7 +717,7 @@ function DesktopSections({
         if (layout === "static" || contentType === "static") {
           return (
             <section key={section.id} className={shell}>
-              <div className="mx-auto grid max-w-5xl items-center gap-10 px-4 lg:grid-cols-[1.1fr_0.9fr] lg:px-0">
+              <div className="grid w-full items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
                 <div>
                   <span className="mb-2 block text-sm font-bold uppercase tracking-wide text-[#C86A37]">
                     Spotlight
@@ -798,7 +778,7 @@ function DesktopSections({
 
         return (
           <section key={section.id} id={sectionIdx === 0 ? "services" : undefined} className={shell}>
-            <div className="mx-auto max-w-6xl px-4 lg:px-0">
+            <div className="w-full">
               <div className="mb-10 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
                 <div className="max-w-2xl">
                   <span className="mb-2 block text-sm font-bold uppercase tracking-wide text-[#C86A37]">
@@ -871,21 +851,24 @@ function DesktopSections({
               ) : null}
 
               {sliderLayout ? (
-                <div className="-mx-4 flex gap-5 overflow-x-auto px-4 pb-3 [scrollbar-width:thin] lg:mx-0 lg:px-0">
+                <ServiceCarousel>
                   {items.map((item, idx) =>
                     isCategory ? (
                       <Link
                         key={`${item.id}-${idx}`}
                         href={itemHref(section, item)}
-                      onClick={(e) => {
-                        if (!isServiceTypeItem(section, item)) return;
-                        e.preventDefault();
-                        onSelectServiceType?.(String(item.id));
-                      }}
-                        className="group w-[220px] shrink-0 overflow-hidden rounded-[22px] border border-black/5 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.03)] transition hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)]"
+                        onClick={(e) => {
+                          if (!isServiceTypeItem(section, item)) return;
+                          e.preventDefault();
+                          onSelectServiceType?.(String(item.id));
+                        }}
+                        className={`group ${CAROUSEL_CARD_WIDTH} overflow-hidden rounded-[22px] border border-black/5 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.03)] transition hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)]`}
                       >
                         <div className="relative flex h-[150px] items-center justify-center bg-[#f1f5f9]">
-                          <RobustCategoryIcon item={item} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                          <RobustCategoryIcon
+                            item={item}
+                            className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                          />
                         </div>
                         <div className="p-4">
                           <h3 className="text-base font-bold text-[#0a0f1c] group-hover:text-[#C86A37]">
@@ -894,49 +877,21 @@ function DesktopSections({
                         </div>
                       </Link>
                     ) : (
-                      <Link
+                      <UrbanServiceCard
                         key={`${item.id}-${idx}`}
+                        service={item as ServiceDoc}
                         href={itemHref(section, item)}
-                      onClick={(e) => {
-                        if (!isServiceTypeItem(section, item)) return;
-                        e.preventDefault();
-                        onSelectServiceType?.(String(item.id));
-                      }}
-                        className="group w-[260px] shrink-0 overflow-hidden rounded-[22px] border border-black/5 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.03)] transition hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)]"
-                      >
-                        <div className="relative aspect-[4/3] bg-[#f1f5f9]">
-                          {itemImage(section, item) ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={itemImage(section, item)}
-                              alt=""
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center">
-                              <Wrench className="size-12 text-gray-300" />
-                            </div>
-                          )}
-                          {badge ? (
-                            <span className="absolute right-3 top-3 rounded-full bg-[#C86A37] px-3 py-1 text-xs font-bold text-white shadow-xs">
-                              {badge}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="p-4">
-                          <h3 className="line-clamp-2 text-base font-bold text-[#0a0f1c] group-hover:text-[#C86A37]">
-                            {item.name || item.title}
-                          </h3>
-                          {!badge ? (
-                            <div className="mt-2 text-sm font-semibold text-[#0a0f1c]">
-                              <ServicePrice service={item as never} />
-                            </div>
-                          ) : null}
-                        </div>
-                      </Link>
+                        badge={badge}
+                        widthClass={CAROUSEL_CARD_WIDTH}
+                        onClick={(e) => {
+                          if (!isServiceTypeItem(section, item)) return;
+                          e.preventDefault();
+                          onSelectServiceType?.(String(item.id));
+                        }}
+                      />
                     ),
                   )}
-                </div>
+                </ServiceCarousel>
               ) : null}
 
               {gridLayout ? (
@@ -971,46 +926,18 @@ function DesktopSections({
                         </div>
                       </Link>
                     ) : (
-                      <Link
+                      <UrbanServiceCard
                         key={item.id}
+                        service={item as ServiceDoc}
                         href={itemHref(section, item)}
-                      onClick={(e) => {
-                        if (!isServiceTypeItem(section, item)) return;
-                        e.preventDefault();
-                        onSelectServiceType?.(String(item.id));
-                      }}
-                        className="group overflow-hidden rounded-[20px] border border-black/5 bg-white shadow-[0_10px_30px_rgba(0,0,0,0.02)] transition hover:-translate-y-1.5 hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)]"
-                      >
-                        <div className="relative aspect-[4/3] bg-[#f1f5f9]">
-                          {itemImage(section, item) ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img
-                              src={itemImage(section, item)}
-                              alt=""
-                              className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                            />
-                          ) : (
-                            <div className="flex h-full items-center justify-center">
-                              <Wrench className="size-12 text-gray-300" />
-                            </div>
-                          )}
-                          {badge ? (
-                            <span className="absolute right-3 top-3 rounded-full bg-[#C86A37] px-3 py-1 text-xs font-bold text-white shadow-xs">
-                              {badge}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="p-4">
-                          <h3 className="line-clamp-2 font-bold text-[#0a0f1c] group-hover:text-[#C86A37]">
-                            {item.name || item.title}
-                          </h3>
-                          {!badge ? (
-                            <div className="mt-2 text-sm font-semibold text-[#0a0f1c]">
-                              <ServicePrice service={item as never} />
-                            </div>
-                          ) : null}
-                        </div>
-                      </Link>
+                        badge={badge}
+                        widthClass="w-full"
+                        onClick={(e) => {
+                          if (!isServiceTypeItem(section, item)) return;
+                          e.preventDefault();
+                          onSelectServiceType?.(String(item.id));
+                        }}
+                      />
                     ),
                   )}
                 </div>

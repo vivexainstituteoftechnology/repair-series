@@ -355,7 +355,7 @@ export function HomePageClient() {
           )}
 
           {/* SECTION 4: Wall Panels Exclusive Studio Feature Banner */}
-          <section className="my-10 rounded-3xl overflow-hidden border border-slate-200/90 bg-gradient-to-r from-[#240308] via-[#540D17] to-[#7E1926] p-6 sm:p-10 text-white shadow-xl relative">
+          <section className="my-10 rounded-3xl overflow-hidden border border-slate-200/90 bg-gradient-to-r from-[#240308] via-[#540D17] to-[#7E1926] p-8 sm:p-14 min-h-[360px] sm:min-h-[400px] flex flex-col justify-center text-white shadow-xl relative">
             <div className="absolute right-0 top-0 w-1/2 h-full opacity-20 pointer-events-none">
               <img
                 src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop&q=80"

@@ -26,7 +26,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 hidden border-b border-slate-200/80 bg-white/95 backdrop-blur-md md:block transition-all">
-      <Container className="flex h-[76px] items-center justify-between gap-4 lg:gap-8">
+      <Container className="flex h-[76px] items-center justify-between gap-4 lg:gap-6">
         {/* Left: Brand Logo & Location Pill */}
         <div className="flex items-center gap-4 lg:gap-6 shrink-0">
           <Link

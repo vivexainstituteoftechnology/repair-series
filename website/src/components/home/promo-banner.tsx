@@ -9,39 +9,51 @@ import {
   type BannerDoc,
   type NormalizedBanner,
 } from "@/lib/banners/store";
+import { DynamicBannerSlide } from "@/components/banners/dynamic-banner-slide";
 
-/** Image-only card — title/tags stay in Firebase for admin, never rendered. */
 function MobileBannerCard({ banner }: { banner: NormalizedBanner }) {
+  const hasDynamicContent = Boolean(banner.title || banner.tagline || banner.buttonText || banner.overlay);
   return (
-    <Link
-      href={banner.href}
-      className="relative h-[220px] w-[min(100%,350px)] shrink-0 snap-center overflow-hidden rounded-[20px] bg-[#E7E5E4] shadow-[0_12px_28px_rgba(8,15,28,0.12)] transition active:scale-[0.985]"
+    <div
+      className="relative h-[260px] w-[min(100%,380px)] shrink-0 snap-center overflow-hidden rounded-[20px] bg-[#E7E5E4] shadow-[0_12px_28px_rgba(8,15,28,0.12)] transition active:scale-[0.985]"
       aria-label="Promotional banner"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={banner.image}
-        alt=""
-        className="h-full w-full object-cover"
-      />
-    </Link>
+      {hasDynamicContent ? (
+        <DynamicBannerSlide banner={banner} deviceMode="mobile" className="size-full" />
+      ) : (
+        <Link href={banner.href} className="block size-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={banner.image}
+            alt=""
+            className="h-full w-full object-cover"
+          />
+        </Link>
+      )}
+    </div>
   );
 }
 
 function DesktopBannerCard({ banner }: { banner: NormalizedBanner }) {
+  const hasDynamicContent = Boolean(banner.title || banner.tagline || banner.buttonText || banner.overlay);
   return (
-    <Link
-      href={banner.href || "/services"}
-      className="relative block min-h-[340px] w-full shrink-0 overflow-hidden rounded-[28px] border border-black/5 bg-[#E7E5E4] shadow-[0_20px_50px_rgba(0,0,0,0.1)]"
+    <div
+      className="relative block min-h-[420px] w-full shrink-0 overflow-hidden rounded-[28px] border border-black/5 bg-[#E7E5E4] shadow-[0_20px_50px_rgba(0,0,0,0.1)]"
       aria-label="Promotional banner"
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={banner.image}
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-    </Link>
+      {hasDynamicContent ? (
+        <DynamicBannerSlide banner={banner} deviceMode="desktop" className="size-full" />
+      ) : (
+        <Link href={banner.href || "/services"} className="block size-full">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={banner.image}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        </Link>
+      )}
+    </div>
   );
 }
 
@@ -102,8 +114,8 @@ export function PromoBannerSection({
       </section>
 
       {!mobileOnly && list.length > 0 ? (
-        <section className={`hidden py-12 md:block ${className}`}>
-          <Container>
+        <section className={`hidden py-6 md:block ${className}`}>
+          <div className="w-full">
             <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {list.map((b) => (
                 <div key={b.id} className="min-w-full snap-center">
@@ -111,7 +123,7 @@ export function PromoBannerSection({
                 </div>
               ))}
             </div>
-          </Container>
+          </div>
         </section>
       ) : null}
     </>

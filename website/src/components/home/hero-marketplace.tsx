@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { getCategoryPath } from "@/lib/catalog/slug";
 import type { HomeBannerDoc } from "@/lib/home-sections/resolve";
+import { DynamicBannerSlide } from "@/components/banners/dynamic-banner-slide";
 
 type CategoryDoc = {
   id: string;
@@ -162,53 +163,57 @@ export function HeroMarketplace({ categories, banners }: HeroMarketplaceProps) {
 
   // Match Firestore categories with curated items or fallback to real categories
   const displayCategories = useMemo(() => {
-    if (!categories || categories.length === 0) return CURATED_DEFAULT_CATEGORIES;
+    if (!categories || categories.length === 0) {
+      return CURATED_DEFAULT_CATEGORIES.map((tpl, i) => ({
+        ...tpl,
+        uniqueKey: `${tpl.id}-${i}`,
+      }));
+    }
+
+    const usedIds = new Set<string>();
 
     // Map each curated template to a real category if name matches
-    return CURATED_DEFAULT_CATEGORIES.map((tpl) => {
+    return CURATED_DEFAULT_CATEGORIES.map((tpl, tplIdx) => {
       const match = categories.find((c) => {
+        if (usedIds.has(c.id)) return false;
         const cName = String(c.name ?? c.title ?? "").toLowerCase();
         return tpl.keywords.some((kw) => cName.includes(kw));
       });
       if (match) {
+        usedIds.add(match.id);
         return {
           ...tpl,
           id: match.id,
+          uniqueKey: `cat-${match.id}-${tplIdx}`,
           name: match.name ?? match.title ?? tpl.name,
           href: tpl.href || getCategoryPath(match),
           img: match.homeImage || match.imageUrl || match.image || match.icon || tpl.img,
         };
       }
-      return tpl;
+      return {
+        ...tpl,
+        uniqueKey: `tpl-${tpl.id}-${tplIdx}`,
+      };
     });
   }, [categories]);
 
-  // Slides from props or default
-  const slides = useMemo(() => {
+  // Active slide duration
+  const activeSlideDuration = useMemo(() => {
     if (banners && banners.length > 0) {
-      return banners.map((b, idx) => {
-        const anyB = b as Record<string, unknown>;
-        return {
-          title: b.title || `Special Offer ${idx + 1}`,
-          subtitle: (typeof anyB.subtitle === "string" ? anyB.subtitle : undefined) || "Exclusive deals on home & appliance repairs",
-          code: (typeof anyB.code === "string" ? anyB.code : undefined) || "REPAIR25",
-          badge: "Special Offer",
-          cta: "Book Now",
-          href: (typeof anyB.link === "string" ? anyB.link : undefined) || (typeof anyB.href === "string" ? anyB.href : undefined) || b.redirectLink || "/services",
-          bgClass: "from-[#431407] via-[#7E1926] to-[#C86A37]",
-          img: b.imageUrl || b.image || b.websiteImage || DEFAULT_PROMO_SLIDES[idx % DEFAULT_PROMO_SLIDES.length].img,
-        };
-      });
+      const b = banners[currentSlide % banners.length];
+      return Number(b?.slideDuration) || 4500;
     }
-    return DEFAULT_PROMO_SLIDES;
-  }, [banners]);
+    return 5000;
+  }, [banners, currentSlide]);
+
+  const slideCount = banners && banners.length > 0 ? banners.length : DEFAULT_PROMO_SLIDES.length;
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [slides.length]);
+    const timer = setTimeout(() => {
+      setCurrentSlide((prev) => (prev + 1) % slideCount);
+    }, activeSlideDuration);
+    return () => clearTimeout(timer);
+  }, [currentSlide, slideCount, activeSlideDuration]);
 
   return (
     <section className="pt-4 pb-8 sm:py-8">
@@ -236,11 +241,11 @@ export function HeroMarketplace({ categories, banners }: HeroMarketplaceProps) {
 
             {/* 4x2 Grid of Category Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-3.5">
-              {displayCategories.map((cat) => {
+              {displayCategories.map((cat, idx) => {
                 const href = cat.href || `/categories/${cat.id}`;
                 return (
                   <Link
-                    key={cat.id}
+                    key={cat.uniqueKey || `${cat.id}-${idx}`}
                     href={href}
                     className="group relative flex flex-col items-center text-center p-3 sm:p-3.5 rounded-2xl border border-slate-100 bg-white hover:border-slate-300 hover:shadow-md transition-all duration-200"
                   >
@@ -297,73 +302,96 @@ export function HeroMarketplace({ categories, banners }: HeroMarketplaceProps) {
         {/* RIGHT CONTAINER: Dual Stack (Promo Banner + Our Promises) */}
         <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sm:gap-6 justify-between">
           {/* Top Promotional Carousel Card */}
-          <div className="relative min-h-[220px] sm:min-h-[240px] flex-1 overflow-hidden rounded-3xl shadow-lg shadow-black/5">
-            {slides.map((slide, index) => {
-              const active = index === currentSlide;
-              return (
-                <div
-                  key={index}
-                  className={`absolute inset-0 p-6 flex flex-col justify-between text-white transition-opacity duration-700 bg-gradient-to-br ${slide.bgClass} ${
-                    active ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
-                  }`}
-                >
-                  {/* Background Ambient Graphic */}
-                  <div className="absolute right-0 bottom-0 w-1/2 h-full opacity-25 pointer-events-none overflow-hidden">
-                    <img
-                      src={slide.img}
-                      alt=""
-                      className="size-full object-cover mix-blend-overlay"
+          <div className="relative min-h-[290px] sm:min-h-[340px] lg:min-h-[310px] flex-1 overflow-hidden rounded-3xl shadow-lg shadow-black/5 bg-slate-900">
+            {banners && banners.length > 0 ? (
+              banners.map((b, index) => {
+                const active = index === currentSlide;
+                return (
+                  <div
+                    key={b.id || index}
+                    className={`absolute inset-0 transition-opacity duration-700 ${
+                      active ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
+                    }`}
+                  >
+                    <DynamicBannerSlide
+                      banner={b}
+                      replayKey={`${b.id}-${currentSlide}`}
+                      priority={index === 0}
+                      className="size-full"
                     />
                   </div>
+                );
+              })
+            ) : (
+              DEFAULT_PROMO_SLIDES.map((slide, index) => {
+                const active = index === currentSlide;
+                return (
+                  <div
+                    key={index}
+                    className={`absolute inset-0 p-6 sm:p-7 flex flex-col justify-between text-white transition-opacity duration-700 bg-gradient-to-br ${slide.bgClass} ${
+                      active ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"
+                    }`}
+                  >
+                    {/* Background Ambient Graphic */}
+                    <div className="absolute right-0 bottom-0 w-1/2 h-full opacity-25 pointer-events-none overflow-hidden">
+                      <img
+                        src={slide.img}
+                        alt=""
+                        className="size-full object-cover mix-blend-overlay"
+                      />
+                    </div>
 
-                  {/* Top Badge */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span className="rounded-full bg-white/15 backdrop-blur-md px-3 py-1 text-[11px] font-black tracking-wider uppercase text-white border border-white/20">
-                      {slide.badge}
-                    </span>
-                    <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-mono font-bold text-white border border-white/20">
-                      {slide.code}
-                    </span>
-                  </div>
+                    {/* Top Badge */}
+                    <div className="relative z-10 flex items-center justify-between">
+                      <span className="rounded-full bg-white/15 backdrop-blur-md px-3 py-1 text-[11px] font-black tracking-wider uppercase text-white border border-white/20">
+                        {slide.badge}
+                      </span>
+                      <span className="rounded-md bg-white/20 px-2 py-0.5 text-xs font-mono font-bold text-white border border-white/20">
+                        {slide.code}
+                      </span>
+                    </div>
 
-                  {/* Middle Copy */}
-                  <div className="relative z-10 my-2">
-                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white drop-shadow-xs">
-                      {slide.title}
-                    </h2>
-                    <p className="mt-1 text-xs sm:text-sm font-semibold text-white/90">
-                      {slide.subtitle}
-                    </p>
-                  </div>
+                    {/* Middle Copy */}
+                    <div className="relative z-10 my-2">
+                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight text-white drop-shadow-xs">
+                        {slide.title}
+                      </h2>
+                      <p className="mt-1 text-xs sm:text-sm font-semibold text-white/90">
+                        {slide.subtitle}
+                      </p>
+                    </div>
 
-                  {/* Bottom Action & Pagination Dots */}
-                  <div className="relative z-10 flex items-center justify-between pt-2">
-                    <Link
-                      href={slide.href}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-extrabold text-[#7E1926] hover:bg-slate-50 transition-transform active:scale-95 shadow-sm"
-                    >
-                      <span>{slide.cta}</span>
-                      <ArrowRight className="size-3.5" />
-                    </Link>
-
-                    {/* Dots */}
-                    <div className="flex items-center gap-1.5">
-                      {slides.map((_, dotIdx) => (
-                        <button
-                          key={dotIdx}
-                          type="button"
-                          onClick={() => setCurrentSlide(dotIdx)}
-                          aria-label={`Go to slide ${dotIdx + 1}`}
-                          className={`size-2 rounded-full transition-all ${
-                            dotIdx === currentSlide ? "w-6 bg-white" : "bg-white/40 hover:bg-white/70"
-                          }`}
-                        />
-                      ))}
+                    {/* Bottom Action */}
+                    <div className="relative z-10 flex items-center justify-between pt-2">
+                      <Link
+                        href={slide.href}
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-white px-4 py-2 text-xs font-extrabold text-[#7E1926] hover:bg-slate-50 transition-transform active:scale-95 shadow-sm"
+                      >
+                        <span>{slide.cta}</span>
+                        <ArrowRight className="size-3.5" />
+                      </Link>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
+
+            {/* Pagination Dots */}
+            {slideCount > 1 ? (
+              <div className="absolute bottom-4 right-4 z-20 flex items-center gap-1.5 bg-black/25 backdrop-blur-md px-2 py-1 rounded-full border border-white/10">
+                {Array.from({ length: slideCount }).map((_, dotIdx) => (
+                  <button
+                    key={dotIdx}
+                    type="button"
+                    onClick={() => setCurrentSlide(dotIdx)}
+                    aria-label={`Go to slide ${dotIdx + 1}`}
+                    className={`size-2 rounded-full transition-all ${
+                      dotIdx === currentSlide ? "w-5 bg-white" : "bg-white/40 hover:bg-white/70"
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : null}
           </div>
 
           {/* Bottom "Our Promises" Trust Card (matches Urban Company right-side card) */}
