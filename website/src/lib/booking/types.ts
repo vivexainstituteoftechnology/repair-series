@@ -179,11 +179,15 @@ export type BookingDoc = {
   hasReview?: boolean;
   reviewId?: string;
   ratedAt?: { toDate?: () => Date } | unknown;
+  latitude?: number;
+  longitude?: number;
 };
 
 export type TechnicianDoc = {
   id: string;
   name?: string;
+  phone?: string;
+  email?: string;
   categoryId?: string;
   categoryIds?: string[];
   serviceRadius?: number;
@@ -194,6 +198,8 @@ export type TechnicianDoc = {
   verificationStatus?: string;
   kyc?: { status?: string };
   location?: { lat?: number; lng?: number; latitude?: number; longitude?: number };
+  latitude?: number;
+  longitude?: number;
   profilePhotoUrl?: string;
   rating?: number;
 };

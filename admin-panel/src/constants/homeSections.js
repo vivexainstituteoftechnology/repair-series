@@ -47,7 +47,6 @@ export const HOME_SECTION_CONTENT_TYPES = [
   { value: 'serviceCategories', label: 'Service Categories' },
   { value: 'services', label: 'Services' },
   { value: 'variations', label: 'Variations' },
-  { value: 'marketplace', label: 'Marketplace Section' },
   { value: 'static', label: 'Custom Content' },
 ]
 
@@ -353,7 +352,7 @@ export function normalizeHomeSectionPayload(input) {
     ? [...new Set(input.itemIds.map((id) => String(id || '').trim()).filter(Boolean))]
     : []
 
-  const needsManualItems = !['static', 'search', 'banners', 'fullWidthBanner', 'marketplace'].includes(contentType)
+  const needsManualItems = !['static', 'search', 'banners', 'fullWidthBanner'].includes(contentType)
   if (needsManualItems && selectionMode === 'manual' && itemIds.length === 0) {
     throw new Error('Select at least one item for manual sections.')
   }
@@ -403,7 +402,6 @@ export function normalizeHomeSectionPayload(input) {
     categoryId: String(input.categoryId || '').trim(),
     serviceCategoryId: String(input.serviceCategoryId || '').trim(),
     ...(isBannerType ? { images } : {}),
-    ...(contentType === 'marketplace' ? { items: normalizeMarketplaceItems(input.items) } : {}),
     settings: {
       height: Number.isFinite(height) && height > 0 ? (height <= 188 ? 220 : height) : 220,
       imageWidth: String(settingsIn.imageWidth || (contentType === 'fullWidthBanner' ? 'fit' : 'full')).trim(),

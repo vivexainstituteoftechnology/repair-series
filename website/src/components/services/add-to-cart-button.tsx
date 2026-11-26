@@ -131,7 +131,7 @@ export function AddToCartButton({
             e.stopPropagation();
             openServiceModal(service);
           }}
-          className={`inline-flex items-center justify-center rounded-lg bg-white min-w-[66px] h-[32px] px-3.5 text-sm font-bold text-[#5B21B6] shadow-[0_2px_8px_rgba(0,0,0,0.10)] border border-slate-200/90 hover:bg-purple-50/50 active:scale-95 transition-all duration-200 ${className}`}
+          className={`inline-flex items-center justify-center rounded-[8px] bg-white min-w-[70px] h-[34px] px-4 text-sm font-bold text-[#C86A37] shadow-[0_2px_6px_rgba(0,0,0,0.08)] border border-slate-200/90 hover:bg-purple-50/50 active:scale-95 transition-all duration-200 select-none ${className}`}
         >
           Add
         </button>
@@ -162,7 +162,7 @@ export function AddToCartButton({
       return (
         <div className={`relative ${className}`}>
           <div
-            className="inline-flex items-center rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.14)] border border-slate-200 h-7 sm:h-8 select-none"
+            className="inline-flex items-center rounded-[8px] bg-white shadow-[0_2px_6px_rgba(0,0,0,0.08)] border border-slate-200/90 h-[34px] min-w-[74px] select-none"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -172,18 +172,18 @@ export function AddToCartButton({
               type="button"
               onClick={handleMinus}
               aria-label="Decrease quantity"
-              className="flex items-center justify-center text-[#5B21B6] hover:bg-purple-50 active:scale-90 transition-transform w-7 sm:w-8 h-full"
+              className="flex items-center justify-center text-[#C86A37] hover:bg-purple-50 active:scale-90 transition-transform w-7 h-full"
             >
               <Minus className="size-3" strokeWidth={2.5} />
             </button>
-            <span className="text-center font-bold text-[#5B21B6] tabular-nums text-xs sm:text-sm px-1.5 min-w-[20px]">
+            <span className="text-center font-bold text-[#C86A37] tabular-nums text-sm px-1 min-w-[20px]">
               {quantity}
             </span>
             <button
               type="button"
               onClick={handlePlus}
               aria-label="Increase quantity"
-              className="flex items-center justify-center text-[#5B21B6] hover:bg-purple-50 active:scale-90 transition-transform w-7 sm:w-8 h-full"
+              className="flex items-center justify-center text-[#C86A37] hover:bg-purple-50 active:scale-90 transition-transform w-7 h-full"
             >
               <Plus className="size-3" strokeWidth={2.5} />
             </button>
@@ -245,7 +245,7 @@ export function AddToCartButton({
         <button
           type="button"
           onClick={handleInitialAdd}
-          className="inline-flex items-center justify-center rounded-lg bg-white min-w-[66px] h-[32px] px-3.5 text-sm font-bold text-[#5B21B6] shadow-[0_2px_8px_rgba(0,0,0,0.10)] border border-slate-200/90 hover:bg-purple-50/50 active:scale-95 transition-all duration-200"
+          className="inline-flex items-center justify-center rounded-[8px] bg-white min-w-[70px] h-[34px] px-4 text-sm font-bold text-[#C86A37] shadow-[0_2px_6px_rgba(0,0,0,0.08)] border border-slate-200/90 hover:bg-purple-50/50 active:scale-95 transition-all duration-200 select-none"
         >
           Add
         </button>

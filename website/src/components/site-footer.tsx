@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Container } from "@/components/container";
 import { Wrench } from "lucide-react";
 import { getCityPath, SERVICE_CITIES } from "@/lib/seo/site";
@@ -39,6 +42,9 @@ function PlayStoreIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 export function SiteFooter() {
+  const pathname = usePathname() || "/";
+  if (pathname.startsWith("/wall-panel")) return null;
+
   return (
     <footer className="mt-auto bg-[#f3f4f6] pt-12 pb-24 sm:pb-28 text-black">
       <Container>
@@ -92,6 +98,7 @@ export function SiteFooter() {
             <ul className="space-y-3.5">
               {[
                 { label: "Categories near you", href: "/services" },
+                { label: "Gurgaon Service Areas", href: "/service-areas" },
                 ...SERVICE_CITIES.map((city) => ({
                   label: `Services in ${city}`,
                   href: getCityPath(city),
@@ -119,10 +126,10 @@ export function SiteFooter() {
             <ul className="space-y-3.5">
               <li>
                 <Link
-                  href="/partner"
+                  href="/contact"
                   className="text-[0.95rem] text-gray-600 transition-colors hover:text-black"
                 >
-                  Register as a professional
+                  Join as a Service Partner
                 </Link>
               </li>
             </ul>
@@ -165,6 +172,49 @@ export function SiteFooter() {
                 </div>
               </a>
             </div>
+          </div>
+        </div>
+
+        {/* Gurgaon Local SEO Coverage Strip */}
+        <div className="mb-10 rounded-2xl border border-gray-200/80 bg-white/60 p-5 backdrop-blur-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#C45508]">
+              Doorstep Appliance Repair Across Gurgaon
+            </span>
+            <Link href="/service-areas" className="text-xs font-bold text-slate-900 hover:text-[#C45508] transition-colors">
+              View All 188 Locations &rarr;
+            </Link>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">
+            Same-day certified AC, washing machine, refrigerator, microwave &amp; RO service available in:
+          </p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-gray-600">
+            {[
+              { name: "Palam Vihar", href: "/service-areas/palam-vihar" },
+              { name: "Sector 23", href: "/service-areas/sector-23-gurgaon" },
+              { name: "DLF Phase 1-5", href: "/service-areas/dlf-phase-3" },
+              { name: "Cyber City", href: "/service-areas/dlf-cyber-city" },
+              { name: "Golf Course Road", href: "/service-areas/sector-54-gurgaon" },
+              { name: "Sector 56", href: "/service-areas/sector-56-gurgaon" },
+              { name: "Sohna Road", href: "/service-areas/sohna-road" },
+              { name: "Sector 48", href: "/service-areas/sector-48-gurgaon" },
+              { name: "Nirvana Country", href: "/service-areas/nirvana-country" },
+              { name: "South City", href: "/service-areas/south-city-1" },
+              { name: "Dwarka Expressway", href: "/service-areas/sector-102-gurgaon" },
+              { name: "New Gurgaon", href: "/service-areas/sector-82-gurgaon" },
+              { name: "Sector 37D", href: "/service-areas/sector-37d-gurgaon" },
+              { name: "Old Gurgaon", href: "/service-areas/sector-14-gurgaon" },
+              { name: "Civil Lines", href: "/service-areas/civil-lines" },
+              { name: "Sushant Lok", href: "/service-areas/sushant-lok-1" },
+            ].map((loc) => (
+              <Link
+                key={loc.name}
+                href={loc.href}
+                className="hover:text-[#C45508] transition-colors"
+              >
+                {loc.name}
+              </Link>
+            ))}
           </div>
         </div>
 

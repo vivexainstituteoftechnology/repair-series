@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Wrench, CalendarCheck, Layers, UserRound } from "lucide-react";
@@ -55,12 +55,49 @@ const DOCK_ITEMS: DockItem[] = [
 export default function Dock() {
   const pathname = usePathname() || "/";
   const { user } = useAuth();
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
-  // Hide on focused checkout and booking payment flows
+  // Global mobile & tablet scroll behavior (Requirement 5):
+  // When scrolling down, smoothly hide dock; when scrolling up, smoothly show dock.
+  // Desktop navigation behavior stays completely unchanged.
+  useEffect(() => {
+    let ticking = false;
+    const threshold = 10;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          if (window.innerWidth < 1024) {
+            if (currentScrollY <= 40) {
+              setIsVisible(true);
+            } else if (currentScrollY > lastScrollY.current + threshold) {
+              setIsVisible(false);
+            } else if (currentScrollY < lastScrollY.current - threshold) {
+              setIsVisible(true);
+            }
+          } else {
+            setIsVisible(true);
+          }
+          lastScrollY.current = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Hide on focused checkout, booking payment flows, and product detail page where bottom CTA is present
+  const isProductDetail = pathname.startsWith("/wall-panel/") && pathname !== "/wall-panel" && !pathname.startsWith("/wall-panel/category");
   const shouldHide =
     pathname.startsWith("/cart/checkout") ||
     pathname.startsWith("/book/") ||
-    pathname.startsWith("/auth");
+    pathname.startsWith("/auth") ||
+    isProductDetail;
 
   if (shouldHide) return null;
 
@@ -80,7 +117,11 @@ export default function Dock() {
   return (
     <nav
       aria-label="Floating Navigation Dock"
-      className="fixed  bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-xl sm:max-w-2xl items-center justify-between gap-1.5 sm:gap-3 rounded-xl border border-white/75 bg-white/70 px-3 py-2 sm:px-6 sm:py-2.5 shadow-[0_12px_40px_rgba(15,23,42,0.14),inset_0_1px_1px_rgba(255,255,255,0.9)] backdrop-blur-2xl backdrop-saturate-150 transition-all duration-300 hover:bg-white/80 hover:shadow-[0_16px_48px_rgba(15,23,42,0.2)] animate-in fade-in slide-in-from-bottom-4"
+      className={`fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex w-[calc(100%-1.5rem)] max-w-xl sm:max-w-2xl items-center justify-between gap-1.5 sm:gap-3 rounded-xl border border-white/75 bg-white/70 px-3 py-2 sm:px-6 sm:py-2.5 shadow-[0_12px_40px_rgba(15,23,42,0.14),inset_0_1px_1px_rgba(255,255,255,0.9)] backdrop-blur-2xl backdrop-saturate-150 transition-all duration-300 ease-in-out hover:bg-white/80 hover:shadow-[0_16px_48px_rgba(15,23,42,0.2)] animate-in fade-in ${
+        isVisible
+          ? "translate-y-0 opacity-100 pointer-events-auto"
+          : "max-lg:translate-y-[200%] max-lg:opacity-0 max-lg:pointer-events-none lg:translate-y-0 lg:opacity-100"
+      }`}
     >
       {DOCK_ITEMS.map((item) => {
         const Icon = item.icon;

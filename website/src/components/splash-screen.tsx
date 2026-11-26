@@ -34,6 +34,12 @@ export function SplashScreen() {
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      try {
+        const s = document.getElementById("rs-splash-css");
+        if (s) s.remove();
+      } catch {
+        // ignore
+      }
     };
   }, []);
 
@@ -42,6 +48,7 @@ export function SplashScreen() {
   return (
     <div
       id="rs-splash-screen"
+      suppressHydrationWarning
       className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white transition-opacity duration-300 ease-out select-none ${
         fadeOut ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"
       }`}
@@ -77,28 +84,31 @@ export function SplashScreen() {
         </div>
       </div>
 
-      {/* Vanilla JS Fallback: Guarantees dismissal even if React hydration stalls or fails */}
+      {/* Vanilla JS Fallback: Injects CSS rules into document.head to guarantee dismissal without touching DOM attributes on the React node (zero hydration mismatch) */}
       <script
         dangerouslySetInnerHTML={{
           __html: `
             (function() {
               try {
                 if (sessionStorage.getItem('rs_splash_shown')) {
-                  var el = document.getElementById('rs-splash-screen');
-                  if (el) el.style.display = 'none';
+                  var s = document.getElementById('rs-splash-css') || document.createElement('style');
+                  s.id = 'rs-splash-css';
+                  s.textContent = '#rs-splash-screen { display: none !important; }';
+                  if (!s.parentNode) document.head.appendChild(s);
                   return;
                 }
               } catch(e) {}
               setTimeout(function() {
-                var el = document.getElementById('rs-splash-screen');
-                if (el) {
-                  el.style.opacity = '0';
-                  el.style.pointerEvents = 'none';
-                }
+                var s = document.getElementById('rs-splash-css') || document.createElement('style');
+                s.id = 'rs-splash-css';
+                s.textContent = '#rs-splash-screen { opacity: 0 !important; pointer-events: none !important; }';
+                if (!s.parentNode) document.head.appendChild(s);
               }, 650);
               setTimeout(function() {
-                var el = document.getElementById('rs-splash-screen');
-                if (el) el.style.display = 'none';
+                var s = document.getElementById('rs-splash-css') || document.createElement('style');
+                s.id = 'rs-splash-css';
+                s.textContent = '#rs-splash-screen { display: none !important; }';
+                if (!s.parentNode) document.head.appendChild(s);
                 try { sessionStorage.setItem('rs_splash_shown', '1'); } catch(e) {}
               }, 950);
             })();

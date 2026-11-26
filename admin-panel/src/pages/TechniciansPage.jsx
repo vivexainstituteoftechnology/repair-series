@@ -135,6 +135,22 @@ export function TechniciansPage() {
     [categories],
   )
 
+  const tabCounts = useMemo(() => {
+    let active = 0
+    let pending = 0
+    let rejected = 0
+    let suspended = 0
+    for (const t of technicians) {
+      const v = normalizeVerificationStatus(t)
+      const kyc = String(t?.kyc?.status || '').toLowerCase()
+      if (t.suspended === true) suspended += 1
+      else if (v === 'active' && (kyc === 'approved' || !kyc)) active += 1
+      else if (v === 'rejected' || kyc === 'rejected') rejected += 1
+      else if (v === 'pending' || kyc === 'pending' || kyc === 'resubmitted' || kyc === 'under_review') pending += 1
+    }
+    return { active, pending, rejected, suspended, all: technicians.length }
+  }, [technicians])
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return technicians.filter((technician) => {
@@ -142,10 +158,11 @@ export function TechniciansPage() {
       const kyc = String(technician?.kyc?.status || '').toLowerCase()
       const suspended = technician.suspended === true
       let tabOk = true
-      if (listTab === 'active') tabOk = v === 'active' && kyc === 'approved' && !suspended
-      else if (listTab === 'pending') tabOk = v === 'pending' || kyc === 'pending' || kyc === 'resubmitted'
+      if (listTab === 'active') tabOk = v === 'active' && (kyc === 'approved' || !kyc) && !suspended
+      else if (listTab === 'pending') tabOk = v === 'pending' || kyc === 'pending' || kyc === 'resubmitted' || kyc === 'under_review'
       else if (listTab === 'rejected') tabOk = v === 'rejected' || kyc === 'rejected'
       else if (listTab === 'suspended') tabOk = suspended
+      else if (listTab === 'all') tabOk = true
       if (!tabOk) return false
       return [
         technician.name,
@@ -271,10 +288,11 @@ export function TechniciansPage() {
 
       <div className="flex flex-wrap gap-2">
         {[
-          { id: 'active', label: 'Active partners' },
-          { id: 'pending', label: 'Pending applications' },
-          { id: 'rejected', label: 'Rejected' },
-          { id: 'suspended', label: 'Suspended' },
+          { id: 'active', label: `Active (${tabCounts.active})` },
+          { id: 'pending', label: `Pending KYC (${tabCounts.pending})` },
+          { id: 'rejected', label: `Rejected (${tabCounts.rejected})` },
+          { id: 'suspended', label: `Suspended (${tabCounts.suspended})` },
+          { id: 'all', label: `All (${tabCounts.all})` },
         ].map((tab) => (
           <Button
             key={tab.id}

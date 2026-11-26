@@ -1,0 +1,41 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "admin-panel": {
+      "root": "admin-panel",
+      "framework": "vite",
+      "bindings": [
+        {
+          "type": "service",
+          "service": "website",
+          "format": "url",
+          "env": "WEBSITE_URL"
+        }
+      ]
+    },
+    "website": {
+      "root": "website",
+      "framework": "nextjs"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/admin",
+      "destination": {
+        "service": "admin-panel"
+      }
+    },
+    {
+      "source": "/admin/(.*)",
+      "destination": {
+        "service": "admin-panel"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "service": "website"
+      }
+    }
+  ]
+}

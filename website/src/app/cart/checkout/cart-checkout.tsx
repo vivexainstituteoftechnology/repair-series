@@ -412,6 +412,19 @@ export function CartCheckoutClient() {
                 lat={address.lat}
                 lng={address.lng}
                 onChange={(lat, lng) => setAddress((a) => ({ ...a, lat, lng }))}
+                onAddressPopulate={(details) => {
+                  setAddress((a) => ({
+                    ...a,
+                    lat: details.lat,
+                    lng: details.lng,
+                    street: details.street || a.street,
+                    area: details.area || a.area,
+                    city: details.city || a.city,
+                    state: details.state || a.state,
+                    pincode: details.pincode || a.pincode,
+                    fullAddress: details.fullAddress || a.fullAddress,
+                  }));
+                }}
               />
               <div className="grid gap-3 sm:grid-cols-2">
                 {(

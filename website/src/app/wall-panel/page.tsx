@@ -1,145 +1,293 @@
 "use client";
 
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Container } from "@/components/container";
-
-type Design = {
-  id: string;
-  name?: string;
-  description?: string;
-  imageUrl?: string;
-  features?: string[];
-  images?: Array<{ url?: string; isCover?: boolean }>;
-};
-
-function photosOf(design: Design) {
-  const urls = (design.images || []).map((img) => img.url).filter(Boolean) as string[];
-  if (!urls.length && design.imageUrl) urls.push(design.imageUrl);
-  return urls;
-}
+import { collection, onSnapshot } from "firebase/firestore";
+import {
+  Sparkles,
+  ArrowRight,
+  Layers,
+  Home,
+} from "lucide-react";
+import { getDb } from "@/lib/firebase/firestore";
+import type {
+  WallPanelCategory,
+  WallPanelProduct,
+  WallPanelSection,
+  WallPanelBanner,
+} from "@/lib/wall-panel/models";
+import {
+  DEFAULT_WALL_PANEL_BANNERS,
+  DEFAULT_WALL_PANEL_CATEGORIES,
+  DEFAULT_WALL_PANEL_PRODUCTS,
+  DEFAULT_WALL_PANEL_SECTIONS,
+} from "@/lib/wall-panel/seed-data";
+import { WallPanelDynamicSections } from "@/components/wall-panel/dynamic-sections";
+import { BookConsultationModal } from "@/components/wall-panel/book-consultation-modal";
 
 export default function WallPanelPage() {
-  const [designs, setDesigns] = useState<Design[]>([]);
+  const [banners, setBanners] = useState<WallPanelBanner[]>(DEFAULT_WALL_PANEL_BANNERS);
+  const [categories, setCategories] = useState<WallPanelCategory[]>(DEFAULT_WALL_PANEL_CATEGORIES);
+  const [products, setProducts] = useState<WallPanelProduct[]>(DEFAULT_WALL_PANEL_PRODUCTS);
+  const [sections, setSections] = useState<WallPanelSection[]>(DEFAULT_WALL_PANEL_SECTIONS);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
+  // Floating Consultation Modal
+  const [isConsultationModalOpen, setIsConsultationModalOpen] = useState(false);
+
+  // Real-time Firestore subscriptions with clean fallback
   useEffect(() => {
-    void (async () => {
-      try {
-        const res = await fetch("/api/wall-panel/designs");
-        const json = (await res.json()) as { designs?: Design[]; error?: string };
-        if (!res.ok) throw new Error(json.error || "Failed to load designs");
-        setDesigns(json.designs || []);
-      } catch (e) {
-        setError((e as Error).message || "Failed");
-      } finally {
+    const db = getDb();
+    if (!db) {
+      setLoading(false);
+      return;
+    }
+
+    // 1. Subscribe to Banners
+    const unsubBanners = onSnapshot(
+      collection(db, "wallPanelBanners"),
+      (snap) => {
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as WallPanelBanner[];
+          list.sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+          setBanners(list);
+        }
+      },
+      () => {}
+    );
+
+    // 2. Subscribe to Categories
+    const unsubCategories = onSnapshot(
+      collection(db, "wallPanelCategories"),
+      (snap) => {
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as WallPanelCategory[];
+          list.sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+          setCategories(list);
+        }
+      },
+      () => {}
+    );
+
+    // 3. Subscribe to Products
+    const unsubProducts = onSnapshot(
+      collection(db, "wallPanelProducts"),
+      (snap) => {
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as WallPanelProduct[];
+          list.sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+          setProducts(list);
+        }
+      },
+      () => {}
+    );
+
+    // 4. Subscribe to Dynamic Sections
+    const unsubSections = onSnapshot(
+      collection(db, "wallPanelSections"),
+      (snap) => {
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ id: d.id, ...d.data() })) as WallPanelSection[];
+          list.sort((a, b) => Number(a.sortOrder ?? 0) - Number(b.sortOrder ?? 0));
+          setSections(list);
+        }
+        setLoading(false);
+      },
+      () => {
         setLoading(false);
       }
-    })();
+    );
+
+    return () => {
+      unsubBanners();
+      unsubCategories();
+      unsubProducts();
+      unsubSections();
+    };
   }, []);
 
   return (
-    <div className="bg-[#F8F6F4]">
-      <section className="relative overflow-hidden bg-[#1A1A1A] text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,#C86A37_0%,transparent_42%)] opacity-80" />
-        <Container className="relative grid gap-8 py-16 md:grid-cols-2 md:py-24">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#F3C7A8]">
-              Interior · Wall Panel
-            </p>
-            <h1 className="mt-4 text-4xl font-semibold leading-tight md:text-5xl">
-              Design your walls with a home consultation.
-            </h1>
-            <p className="mt-4 max-w-lg text-base leading-7 text-white/75">
-              Explore finishes, book a visit, and approve a quotation before anything is delivered.
-              Consultation booking itself does not charge a panel price.
-            </p>
-            <Link
-              href="/wall-panel/book"
-              className="mt-8 inline-flex rounded-xl bg-gradient-to-r from-[#C86A37] to-[#A85028] px-6 py-3 text-sm font-semibold text-white shadow-xs transition hover:opacity-95"
-            >
-              Book consultation
-            </Link>
-          </div>
-          <div className="hidden overflow-hidden rounded-3xl md:block">
-            {designs[0] && photosOf(designs[0]).length ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={photosOf(designs[0])[0]} alt="" className="h-full min-h-[280px] w-full object-cover" />
-            ) : (
-              <div className="min-h-[280px] bg-gradient-to-br from-[#C86A37] to-[#1A1A1A]" />
-            )}
-          </div>
-        </Container>
-      </section>
-
-      <Container className="py-12 pb-28 md:pb-12">
-        <div className="mb-8 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-semibold text-neutral-900">Available designs</h2>
-            <p className="mt-1 text-sm text-neutral-500">Select a look, then book a consultation.</p>
+    <div className="min-h-screen bg-[#FDFBF7] text-slate-900 pb-28 selection:bg-[#C45508] selection:text-white">
+      {/* 1. Immersive Studio Top Navigation Bar (No standard website header) */}
+      <nav className="sticky top-0 z-40 w-full bg-white/90 backdrop-blur-md border-b border-slate-200/80 px-4 sm:px-8 py-3.5 flex items-center justify-between transition-all">
+        <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 rounded-full bg-slate-100 hover:bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 transition"
+          >
+            <Home className="size-3.5" />
+            <span>Home</span>
+          </Link>
+          <div className="h-4 w-px bg-slate-200" />
+          <div className="flex items-center gap-2">
+            <div className="flex size-7 items-center justify-center rounded-lg bg-[#C45508] text-white">
+              <Layers className="size-4" />
+            </div>
+            <span className="font-black text-sm sm:text-base tracking-tight text-slate-900">
+              Wall Panels <span className="text-[#C45508] font-bold">Studio</span>
+            </span>
           </div>
         </div>
 
-        {loading ? (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-72 animate-pulse rounded-3xl bg-white" />
-            ))}
-          </div>
-        ) : null}
-
-        {error ? <p className="rounded-2xl bg-white p-6 text-sm text-red-600">{error}</p> : null}
-
-        {!loading && !error && designs.length === 0 ? (
-          <div className="rounded-3xl border border-dashed bg-white p-10 text-center">
-            <p className="font-semibold text-neutral-900">No designs published yet</p>
-            <p className="mt-2 text-sm text-neutral-500">
-              Add designs in the Admin Panel under Wall Panel, then refresh this page.
-            </p>
-          </div>
-        ) : null}
-
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {designs.map((d) => {
-            const photos = photosOf(d);
-            return (
-            <article
-              key={d.id}
-              className="group overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="flex gap-2 overflow-x-auto p-2">
-                {photos.length ? photos.map((url) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={url} src={url} alt={d.name || "Wall panel design"} className="h-56 w-full min-w-full rounded-2xl object-cover" />
-                )) : <div className="h-56 w-full rounded-2xl bg-neutral-100" />}
-              </div>
-              <div className="p-5">
-                <h3 className="text-lg font-semibold text-neutral-900">{d.name || "Design"}</h3>
-                <p className="mt-1 text-xs text-neutral-500">{photos.length} photos</p>
-                <p className="mt-2 line-clamp-3 text-sm leading-6 text-neutral-600">{d.description}</p>
-                <Link
-                  href={`/wall-panel/book?design=${encodeURIComponent(d.id)}`}
-                  className="mt-4 inline-block text-sm font-semibold text-[#C86A37]"
-                >
-                  Select this design
-                </Link>
-              </div>
-            </article>
-            );
-          })}
-        </div>
-      </Container>
-
-      {/* Mobile Floating Bottom Action Bar */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/5 bg-white/95 p-3 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur-md md:hidden">
-        <Link
-          href="/wall-panel/book"
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#C86A37] to-[#A85028] px-6 text-sm font-bold text-white shadow-xs active:scale-95 transition-transform"
+        <button
+          type="button"
+          onClick={() => setIsConsultationModalOpen(true)}
+          className="hidden sm:inline-flex items-center gap-2 rounded-xl bg-[#C45508] px-4 py-2 text-xs font-extrabold text-white shadow-sm hover:bg-[#A84706] transition active:scale-95"
         >
-          <span>Book consultation</span>
-        </Link>
+          <Sparkles className="size-3.5" />
+          <span>Book Consultation – ₹49</span>
+        </button>
+      </nav>
+
+      {/* 2. Hero Slideshow / Banner (Managed via Admin Panel) */}
+      <HeroBannerSlider
+        banners={banners}
+        onBookClick={() => setIsConsultationModalOpen(true)}
+      />
+
+      {/* 3. Main Studio Dynamic Sections */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14 space-y-12 sm:space-y-16">
+        <WallPanelDynamicSections
+          sections={sections}
+          categories={categories}
+          products={products}
+        />
+      </main>
+
+      {/* 4. Attractive Floating "Book Consultation – ₹49" Button with Subtle Attention-Grabbing Animation */}
+      <div className="fixed bottom-5 sm:bottom-8 right-4 sm:right-8 z-40">
+        <button
+          type="button"
+          onClick={() => setIsConsultationModalOpen(true)}
+          className="group relative flex items-center gap-3 rounded-full bg-gradient-to-r from-[#C45508] via-[#B84E07] to-[#8C2C04] px-5 sm:px-6 py-3.5 sm:py-4 text-white shadow-[0_10px_35px_rgba(196,85,8,0.45)] hover:shadow-[0_14px_45px_rgba(196,85,8,0.55)] transition-all duration-300 hover:scale-105 active:scale-95 overflow-hidden select-none"
+        >
+          {/* Subtle Ambient Pulse Ring */}
+          <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-amber-400 to-[#C45508] opacity-35 blur-xs animate-pulse" />
+
+          {/* Shimmer Light Ray passing across */}
+          <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent group-hover:translate-x-full duration-1000 transition-transform" />
+
+          <div className="relative z-10 flex size-7 sm:size-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+            <Sparkles className="size-4 text-amber-200 animate-spin-slow" />
+          </div>
+
+          <div className="relative z-10 text-left">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-200 leading-none">
+              Doorstep Samples & 3D Measure
+            </p>
+            <p className="text-sm sm:text-base font-black text-white leading-tight mt-0.5">
+              Book Consultation – ₹49
+            </p>
+          </div>
+
+          <ArrowRight className="relative z-10 size-4.5 sm:size-5 transition-transform duration-300 group-hover:translate-x-1" />
+        </button>
       </div>
+
+      {/* 5. Consultation Booking Modal */}
+      <BookConsultationModal
+        isOpen={isConsultationModalOpen}
+        onClose={() => setIsConsultationModalOpen(false)}
+      />
+    </div>
+  );
+}
+
+/**
+ * Customizable Hero Slideshow Slider
+ */
+function HeroBannerSlider({
+  banners,
+  onBookClick,
+}: {
+  banners: WallPanelBanner[];
+  onBookClick: () => void;
+}) {
+  const activeBanners = [...banners].filter((b) => b.active !== false);
+  const [currentIdx, setCurrentIdx] = useState(0);
+
+  useEffect(() => {
+    if (activeBanners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentIdx((prev) => (prev + 1) % activeBanners.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, [activeBanners.length]);
+
+  if (activeBanners.length === 0) return null;
+
+  return (
+    <div className="relative w-full overflow-hidden bg-slate-950 aspect-[16/9] sm:aspect-[21/9] max-h-[580px]">
+      <div
+        className="flex size-full transition-transform duration-700 ease-out"
+        style={{ transform: `translateX(-${currentIdx * 100}%)` }}
+      >
+        {activeBanners.map((b) => (
+          <div key={b.id} className="relative size-full shrink-0">
+            {/* Background image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={b.imageUrl}
+              alt={b.title}
+              className="size-full object-cover opacity-85"
+            />
+
+            {/* Gradient Mask for High Contrast */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/20" />
+
+            {/* Banner Text Content */}
+            <div className="absolute inset-0 flex items-center">
+              <div className="max-w-7xl mx-auto px-5 sm:px-8 w-full">
+                <div className="max-w-xl text-left space-y-3 sm:space-y-4">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-[11px] font-bold text-amber-300 border border-white/20">
+                    <Sparkles className="size-3" />
+                    <span>Exclusive Architectural Finishes</span>
+                  </div>
+
+                  <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight drop-shadow-md">
+                    {b.title}
+                  </h1>
+
+                  {b.subtitle ? (
+                    <p className="text-xs sm:text-base text-white/85 font-medium leading-relaxed max-w-lg drop-shadow-sm">
+                      {b.subtitle}
+                    </p>
+                  ) : null}
+
+                  <div className="pt-2 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={onBookClick}
+                      className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#C45508] to-[#9A3412] px-5 sm:px-6 py-3 text-xs sm:text-sm font-bold text-white shadow-lg shadow-[#C45508]/30 hover:opacity-95 transition active:scale-95"
+                    >
+                      <span>{b.ctaText || "Book Consultation – ₹49"}</span>
+                      <ArrowRight className="size-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Slideshow Dots Indicator */}
+      {activeBanners.length > 1 ? (
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+          {activeBanners.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCurrentIdx(i)}
+              aria-label={`Go to slide ${i + 1}`}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                i === currentIdx ? "bg-white w-6 shadow-md" : "bg-white/40 w-2 hover:bg-white/70"
+              }`}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

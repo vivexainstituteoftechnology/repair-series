@@ -396,6 +396,7 @@ export function AppProvider({ children }) {
             googleReviewUrl: docRow.googleReviewUrl,
             homeReviews: Array.isArray(docRow.homeReviews) ? docRow.homeReviews : [],
             serviceAreas: Array.isArray(docRow.serviceAreas) ? docRow.serviceAreas : [],
+            gurgaonSeoOverrides: docRow.gurgaonSeoOverrides && typeof docRow.gurgaonSeoOverrides === 'object' ? docRow.gurgaonSeoOverrides : {},
             updatedAt: docRow.updatedAt,
           })
         }
@@ -2897,6 +2898,20 @@ export function AppProvider({ children }) {
     return normalized
   }
 
+  const updateGurgaonSeoOverrides = async (overrides) => {
+    if (session?.role !== ROLES.SUPER_ADMIN && session?.role !== ROLES.SERVICE_MANAGER) {
+      throw new Error('Only Admins can manage SEO settings.')
+    }
+    if (!isFirebaseConfigured || !db) throw new Error('Firebase is not configured.')
+    await withMutating('serviceAreas', async () => {
+      await upsertDoc('settings', 'general', {
+        gurgaonSeoOverrides: overrides || {},
+      })
+    })
+    toast.success('Gurgaon SEO configuration saved.')
+    return overrides
+  }
+
   const importServicesFromCsv = async (rows, options = {}) => {
     const { onProgress } = options
     if (session?.role !== ROLES.SUPER_ADMIN && session?.role !== ROLES.SERVICE_MANAGER) {
@@ -3085,6 +3100,7 @@ export function AppProvider({ children }) {
     updateGlobalPaymentSettings,
     updateAppPublicSettings,
     updateServiceAreas,
+    updateGurgaonSeoOverrides,
     importServicesFromCsv,
     importAdditionalServicesFromCsv,
     upsertAdditionalService,

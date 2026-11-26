@@ -7,7 +7,6 @@ import { useApp } from './context/useApp'
 import { AdminUsersPage } from './pages/AdminUsersPage'
 import { AdditionalServicesPage } from './pages/AdditionalServicesPage'
 import { BookingsPage } from './pages/BookingsPage'
-import { ComingSoonServicesPage } from './pages/ComingSoonServicesPage'
 import { CustomersPage } from './pages/CustomersPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { ImportServicesPage } from './pages/ImportServicesPage'
@@ -17,7 +16,6 @@ import { SupportLegalPage } from './pages/SupportLegalPage'
 import { ServicesPage } from './pages/ServicesPage'
 import { ReviewsPage } from './pages/ReviewsPage'
 import { TechniciansPage } from './pages/TechniciansPage'
-import { OffersPage } from './pages/OffersPage'
 import { BannersPage } from './pages/BannersPage'
 import { HomeSectionsPage } from './pages/HomeSectionsPage'
 import { PeakHoursPage } from './pages/PeakHoursPage'
@@ -133,11 +131,7 @@ function App() {
         />
         <Route
           path="/coming-soon-services"
-          element={
-            <ProtectedRoute>
-              <ComingSoonServicesPage />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/services" replace />}
         />
         <Route
           path="/additional-services"
@@ -189,11 +183,7 @@ function App() {
         />
         <Route
           path="/offers"
-          element={
-            <ProtectedRoute>
-              <OffersPage />
-            </ProtectedRoute>
-          }
+          element={<Navigate to="/banners" replace />}
         />
         <Route
           path="/peak-hours"

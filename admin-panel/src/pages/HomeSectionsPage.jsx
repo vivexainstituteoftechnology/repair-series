@@ -46,7 +46,7 @@ import {
   normalizeHomeChromeSticky,
 } from '../utils/homeChromeSettings'
 import { HomeSectionBannerSlidesEditor } from '../components/HomeSectionBannerSlidesEditor'
-import { MarketplaceSectionEditor } from '../components/MarketplaceSectionEditor'
+import { HeroMarketplaceEditor } from '../components/HeroMarketplaceEditor'
 import { uploadToCloudinary } from '../services/cloudinary'
 import { useApp } from '../context/useApp'
 import { catalogTitle } from '../utils/catalogHierarchy'
@@ -90,8 +90,7 @@ export function HomeSectionsPage() {
   const [dragId, setDragId] = useState('')
   const [chromeSticky, setChromeSticky] = useState(() => ({ ...DEFAULT_HOME_CHROME_STICKY }))
   const [catalogChrome, setCatalogChrome] = useState(() => ({ ...DEFAULT_CATALOG_CHROME }))
-  const [marketplaceEditorOpen, setMarketplaceEditorOpen] = useState(false)
-  const [editingMarketplaceSection, setEditingMarketplaceSection] = useState(null)
+  const [heroMarketplaceEditorOpen, setHeroMarketplaceEditorOpen] = useState(false)
 
   // Multi-selection state
   const [selectedIds, setSelectedIds] = useState(() => new Set())
@@ -450,11 +449,6 @@ export function HomeSectionsPage() {
   }
 
   const openEdit = (row) => {
-    if (row.contentType === 'marketplace' || row.type === 'marketplace') {
-      setEditingMarketplaceSection(row)
-      setMarketplaceEditorOpen(true)
-      return
-    }
     setForm({
       ...emptyHomeSectionForm(typeId),
       ...row,
@@ -588,22 +582,45 @@ export function HomeSectionsPage() {
               <FolderInput className="mr-1.5 size-4" />
               Copy from another screen
             </Button>
-            <Button
-              type="button"
-              className="gap-2 bg-[#C45508] text-white hover:bg-[#a84706]"
-              onClick={() => {
-                setEditingMarketplaceSection(null)
-                setMarketplaceEditorOpen(true)
-              }}
-            >
-              <ShoppingBag className="size-4" /> Marketplace Editor
-            </Button>
-            <Button type="button" variant="outline" className="gap-2" onClick={openCreate} disabled={!typeId}>
+            <Button type="button" className="gap-2" onClick={openCreate} disabled={!typeId}>
               <Plus className="size-4" /> Add section
             </Button>
           </div>
         }
       />
+
+      {/* Hero Marketplace Card */}
+      <Card className="p-5 border-2 border-orange-200/80 bg-gradient-to-r from-orange-50/70 via-white to-amber-50/50 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex size-12 items-center justify-center rounded-2xl bg-[#FFF7ED] text-[#C45508] border border-orange-200 shrink-0 shadow-xs">
+              <Sparkles className="size-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-extrabold text-slate-900">
+                  Hero Marketplace (Top of Homepage)
+                </h3>
+                <span className="rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider">
+                  Live on Homepage
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                The signature 4-column split hero grid on the homepage. Customize items (Services, Categories, Service Types, Category Types), drag to reorder, customize arrival badges, and preview on all devices.
+              </p>
+            </div>
+          </div>
+
+          <Button
+            type="button"
+            className="gap-2 bg-[#C45508] text-white hover:bg-[#a84706] shadow-xs active:scale-95 shrink-0"
+            onClick={() => setHeroMarketplaceEditorOpen(true)}
+          >
+            <Sparkles className="size-4" />
+            <span>Customize Hero Marketplace</span>
+          </Button>
+        </div>
+      </Card>
 
       <div className="flex flex-wrap gap-2">
         {hasUnassigned ? (
@@ -1695,25 +1712,16 @@ export function HomeSectionsPage() {
         </div>
       </Modal>
 
-      {/* Marketplace Editor Full Modal */}
-      {marketplaceEditorOpen ? (
+      {/* Hero Marketplace Customizer Modal */}
+      {heroMarketplaceEditorOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="w-full max-w-7xl h-[92vh] overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200 flex flex-col">
-            <MarketplaceSectionEditor
-              section={editingMarketplaceSection}
+            <HeroMarketplaceEditor
               services={services}
               categories={categories}
               serviceTypes={serviceTypes}
               serviceCategories={serviceCategories}
-              onClose={() => {
-                setMarketplaceEditorOpen(false)
-                setEditingMarketplaceSection(null)
-              }}
-              onSave={async (payload) => {
-                await upsertHomeSection({ ...payload, serviceTypeId: typeId || payload.serviceTypeId })
-                setMarketplaceEditorOpen(false)
-                setEditingMarketplaceSection(null)
-              }}
+              onClose={() => setHeroMarketplaceEditorOpen(false)}
             />
           </div>
         </div>

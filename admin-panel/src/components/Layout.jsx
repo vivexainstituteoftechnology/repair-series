@@ -60,7 +60,6 @@ const navGroups = [
     category: 'SERVICES & CATALOG',
     items: [
       { to: '/services', label: 'Catalog & Services', icon: Layers },
-      { to: '/coming-soon-services', label: 'Coming Soon', icon: Sparkles },
       { to: '/additional-services', label: 'Add-on Services', icon: PackagePlus },
       { to: '/import-services', label: 'Import Services', icon: Upload },
       { to: '/wall-panel/designs', label: 'Wall Panel Studio', icon: LayoutGrid },
@@ -95,7 +94,6 @@ const navGroups = [
       { to: '/home-sections', label: 'Home Screen Builder', icon: LayoutGrid },
       { to: '/coupons', label: 'Coupons & Discounts', icon: TicketPercent },
       { to: '/banners', label: 'Banners', icon: Tag },
-      { to: '/offers', label: 'Legacy Offers', icon: Tag },
       { to: '/reviews', label: 'Customer Reviews', icon: Star },
       { to: '/notifications', label: 'Broadcast Push', icon: Megaphone },
     ],

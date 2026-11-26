@@ -19,6 +19,16 @@ const RESERVED = new Set([
   "refund",
   "login",
   "catalog",
+  "service-areas",
+  "ac-repair",
+  "refrigerator-repair",
+  "washing-machine-repair",
+  "microwave-repair",
+  "chimney-repair",
+  "ro-repair",
+  "geyser-repair",
+  "tv-repair",
+  "appliance-repair",
 ]);
 
 export default async function CatalogCatchAllPage({

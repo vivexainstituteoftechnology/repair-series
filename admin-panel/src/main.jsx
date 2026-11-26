@@ -5,9 +5,12 @@ import './index.css'
 import App from './App.jsx'
 import { AppProvider } from './context/AppContext.jsx'
 
+const rawBase = import.meta.env.BASE_URL || '/'
+const basename = rawBase.replace(/\/$/, '') || '/'
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={basename === '/' ? undefined : basename}>
       <AppProvider>
         <App />
       </AppProvider>

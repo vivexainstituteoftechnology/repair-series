@@ -40,9 +40,9 @@ import {
   MostBookedSection,
 } from "@/components/home/service-sections";
 import { DynamicHomeSections } from "@/components/home/dynamic-home-sections";
-import { HeroMarketplace } from "@/components/home/hero-marketplace";
-import { SpotlightSection } from "@/components/home/spotlight-section";
+import { HeroMarketplace, type HeroMarketplaceItem } from "@/components/home/hero-marketplace";
 import { FloatingCartBar } from "@/components/home/floating-cart-bar";
+import { BookConsultationModal } from "@/components/wall-panel/book-consultation-modal";
 import { SERVICE_CITIES } from "@/lib/seo/site";
 import { getDb } from "@/lib/firebase/firestore";
 import type { ServiceDoc as FirestoreServiceDoc } from "@/lib/booking/types";
@@ -95,9 +95,12 @@ export function HomePageClient() {
   const [serviceTypes, setServiceTypes] = useState<CategoryDoc[]>([]);
   const [serviceCategories, setServiceCategories] = useState<CategoryDoc[]>([]);
   const [banners, setBanners] = useState<HomeBannerDoc[]>([]);
+  const [heroMarketplaceItems, setHeroMarketplaceItems] = useState<HeroMarketplaceItem[] | undefined>(undefined);
   const [selectedTypeId, setSelectedTypeId] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [dynamicFaqs, setDynamicFaqs] = useState<Array<{ q: string; a: string }>>([]);
+  const [isWallPanelModalOpen, setIsWallPanelModalOpen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -187,9 +190,41 @@ export function HomePageClient() {
   useEffect(() => {
     const db = getDb();
     if (!db) return;
+    const unsub = onSnapshot(collection(db, "faqs"), (snap) => {
+      if (!snap.empty) {
+        const rows = snap.docs
+          .map((d) => d.data())
+          .filter((d) => d.active !== false && (d.question || d.q) && (d.answer || d.a))
+          .map((d) => ({
+            q: String(d.question || d.q || "").trim(),
+            a: String(d.answer || d.a || "").trim(),
+          }));
+        if (rows.length > 0) setDynamicFaqs(rows);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const db = getDb();
+    if (!db) return;
     const unsub = onSnapshot(collection(db, "homeSections"), (snap) => {
       const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as HomeSectionDoc);
       setCmsSections(filterHomeSectionsForPlatform(rows, "desktopWeb"));
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const db = getDb();
+    if (!db) return;
+    const unsub = onSnapshot(doc(db, "settings", "heroMarketplace"), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        if (Array.isArray(data?.items)) {
+          setHeroMarketplaceItems(data.items as HeroMarketplaceItem[]);
+        }
+      }
     });
     return () => unsub();
   }, []);
@@ -292,18 +327,24 @@ export function HomePageClient() {
           {/* SECTION 1: Urban Company Signature Split Hero Card */}
           <HeroMarketplace
             categories={categories}
-            serviceTypes={serviceTypes}
-            banners={banners}
-          />
-
-          {/* SECTION 2: "In the spotlight" / Most Booked Services Carousel */}
-          <SpotlightSection
             services={services}
-            title="In the spotlight"
-            subtitle="Most booked appliance & home repairs trusted by customers daily"
+            serviceTypes={serviceTypes}
+            serviceCategories={serviceCategories}
+            banners={banners}
+            customItems={heroMarketplaceItems}
+            onSelectServiceType={(id) => {
+              const type = serviceTypes.find((t) => t.id === id);
+              if (type) {
+                if (isWallPanelCatalogItem(type)) {
+                  router.push("/wall-panel");
+                  return;
+                }
+                setSelectedServiceTypeForModal(type);
+              }
+            }}
           />
 
-          {/* SECTION 3: Dynamic Home Sections (Single Unified Marketplace Homepage) */}
+          {/* SECTION 2: Dynamic Home Sections (Single Unified Marketplace Homepage) */}
           {useCms ? (
             <DynamicHomeSections
               variant="desktop"
@@ -337,7 +378,7 @@ export function HomePageClient() {
 
           {/* Service Type Associated Categories Modal (Requirement 5) */}
           {selectedServiceTypeForModal ? (
-            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-999 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-xs animate-in fade-in duration-200">
               <div className="w-full max-w-lg overflow-hidden rounded-t-3xl sm:rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-2xl animate-in slide-in-from-bottom sm:zoom-in-95 duration-200">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div>
@@ -414,12 +455,13 @@ export function HomePageClient() {
                   <span>Explore 50+ Wall Designs</span>
                   <ArrowRight className="size-4" />
                 </Link>
-                <Link
-                  href="/wall-panel/book"
-                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-xs sm:text-sm font-bold text-white hover:bg-white/20 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => setIsWallPanelModalOpen(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 border border-white/20 px-4 py-2.5 text-xs sm:text-sm font-bold text-white hover:bg-white/20 transition-colors cursor-pointer"
                 >
-                  <span>Book Consultation ₹0</span>
-                </Link>
+                  <span>Book Consultation – ₹49</span>
+                </button>
               </div>
             </div>
           </section>
@@ -547,7 +589,7 @@ export function HomePageClient() {
             </div>
 
             <div className="max-w-2xl mx-auto space-y-3">
-              {faqs.map((faq, idx) => (
+              {(dynamicFaqs.length > 0 ? dynamicFaqs : faqs).map((faq, idx) => (
                 <details
                   key={idx}
                   className="group rounded-2xl border border-slate-200/80 bg-white p-4 transition-all [&_summary::-webkit-details-marker]:hidden"
@@ -567,6 +609,12 @@ export function HomePageClient() {
           </section>
         </Container>
       </main>
+
+      {/* Wall Panels Consultation Modal */}
+      <BookConsultationModal
+        isOpen={isWallPanelModalOpen}
+        onClose={() => setIsWallPanelModalOpen(false)}
+      />
 
       {/* Urban Company Signature Floating Cart Bar */}
       <FloatingCartBar />

@@ -54,8 +54,8 @@ export function MobileAppHeader() {
   const router = useRouter();
   const { itemCount } = useCart();
 
-  // On home or dev tools, mobile app header is not shown
-  if (pathname === "/" || pathname.startsWith("/dev")) {
+  // On home, dev tools, or dedicated Wall Panels studio screens, mobile app header is not shown
+  if (pathname === "/" || pathname.startsWith("/dev") || pathname.startsWith("/wall-panel")) {
     return null;
   }
 

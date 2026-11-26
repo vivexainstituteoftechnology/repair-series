@@ -92,6 +92,7 @@ function isWallPanelType(type) {
 }
 
 function statusTone(status) {
+  if (status === 'Coming Soon') return 'info'
   return isCatalogActive({ status }) ? 'success' : 'warning'
 }
 
@@ -267,7 +268,6 @@ export function ServicesPage() {
     () =>
       sortByDisplayOrder(
         (services || []).filter((s) => {
-          if (String(s.status || '') === 'Coming Soon') return false
           if (serviceCategoryId) return String(s.serviceCategoryId || '') === serviceCategoryId
           if (categoryId) return String(s.categoryId || '') === categoryId && !s.serviceCategoryId
           return false
@@ -1386,6 +1386,7 @@ export function ServicesPage() {
           <Field label="Status">
             <Select value={nodeForm.status} onChange={(e) => setNodeForm({ ...nodeForm, status: e.target.value })}>
               <option value="Active">Active</option>
+              <option value="Coming Soon">Coming Soon</option>
               <option value="Inactive">Inactive</option>
             </Select>
           </Field>
@@ -1460,6 +1461,7 @@ export function ServicesPage() {
           <Field label="Status">
             <Select value={serviceForm.status} onChange={(e) => setServiceForm({ ...serviceForm, status: e.target.value })}>
               <option value="Active">Active</option>
+              <option value="Coming Soon">Coming Soon</option>
               <option value="Inactive">Inactive</option>
             </Select>
           </Field>
@@ -1562,6 +1564,7 @@ export function ServicesPage() {
           <Field label="Status">
             <Select value={variationForm.status} onChange={(e) => setVariationForm({ ...variationForm, status: e.target.value })}>
               <option value="Active">Active</option>
+              <option value="Coming Soon">Coming Soon</option>
               <option value="Inactive">Inactive</option>
             </Select>
           </Field>

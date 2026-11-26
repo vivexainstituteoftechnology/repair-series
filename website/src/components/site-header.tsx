@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Container } from "@/components/container";
-// import { HeaderAuth } from "@/components/header-auth";
 import { HeaderCartButton } from "@/components/header/header-cart";
 import { HeaderLocationDropdown } from "@/components/header/header-location";
 import { HeaderSearch } from "@/components/header/header-search";
 
 export function SiteHeader() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "/";
+
+  // Hide on dedicated Wall Panels studio screens (Requirement 2)
+  if (pathname.startsWith("/wall-panel")) return null;
 
   const handleHomeClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (pathname === "/") {
@@ -43,10 +45,7 @@ export function SiteHeader() {
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-lg tracking-tight text-slate-900 leading-tight">
-                Repair<span className="text-[#C86A37]">Series</span>
-              </span>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                Services
+                Repair<span className="text-[#C86A37]"> Series</span>
               </span>
             </div>
           </Link>
@@ -63,7 +62,6 @@ export function SiteHeader() {
         {/* Right: Cart & Auth Profile */}
         <div className="flex shrink-0 items-center gap-3">
           <HeaderCartButton />
-          {/* <HeaderAuth /> */}
         </div>
       </Container>
     </header>

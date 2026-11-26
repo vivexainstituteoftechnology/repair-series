@@ -45,12 +45,17 @@ export function verificationAccountBadge(technician) {
 }
 
 export function kycStatusBadge(technician) {
+  if (technician?.suspended) {
+    return { label: 'Suspended', tone: 'danger' }
+  }
   const k = technician?.kyc
   const s = k && typeof k === 'object' ? String(k.status ?? '').trim().toLowerCase() : ''
-  if (!s) return { label: 'KYC: —', tone: 'neutral' }
+  if (!s || s === 'draft') return { label: 'KYC: Incomplete Draft', tone: 'neutral' }
   if (s === 'approved') return { label: 'KYC: Approved', tone: 'success' }
   if (s === 'rejected') return { label: 'KYC: Rejected', tone: 'danger' }
-  return { label: 'KYC: Pending', tone: 'warning' }
+  if (s === 'under_review') return { label: 'KYC: Under Review', tone: 'warning' }
+  if (s === 'resubmitted') return { label: 'KYC: Resubmitted', tone: 'warning' }
+  return { label: 'KYC: Pending Verification', tone: 'warning' }
 }
 
 export function maskAccountNumber(value) {
@@ -58,6 +63,20 @@ export function maskAccountNumber(value) {
   if (!s) return '—'
   if (s.length <= 4) return '••••'
   return `XXXXXX${s.slice(-4)}`
+}
+
+export function maskAadhaarNumber(value) {
+  const s = String(value ?? '').replace(/\D/g, '')
+  if (!s) return '—'
+  if (s.length !== 12) return s
+  return `XXXX XXXX ${s.slice(-4)}`
+}
+
+export function maskPanNumber(value) {
+  const s = String(value ?? '').trim().toUpperCase()
+  if (!s) return '—'
+  if (s.length !== 10) return s
+  return `${s.slice(0, 2)}XXXXX${s.slice(-1)}`
 }
 
 export function pickAadhaarImageUrl(doc, side /* 'front' | 'back' */) {

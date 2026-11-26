@@ -32,6 +32,7 @@ import { getDb } from "@/lib/firebase/firestore";
 import { canClaimRevisit, getRevisitRemaining } from "@/lib/booking/revisit";
 import { getBookPath } from "@/lib/catalog/slug";
 import { BookingReschedulePanel } from "@/components/booking-reschedule";
+import { LivePartnerTracking } from "@/components/live-partner-tracking";
 
 export function BookingDetail({ bookingId }: { bookingId: string }) {
   const { user, loading: authLoading } = useAuth();
@@ -415,7 +416,10 @@ export function BookingDetail({ bookingId }: { bookingId: string }) {
             <BookingPaymentRequestBanner booking={booking} customerId={user.uid} />
           ) : null}
 
-          {technician ? (
+          {technician &&
+          ["Assigned", "Started", "in_progress", "PARTNER_ON_THE_WAY"].includes(String(booking.status)) ? (
+            <LivePartnerTracking booking={booking} technician={technician} />
+          ) : technician ? (
             <div className="rounded-[24px] border bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-[#0a0f1c]">Your technician</h2>
               <div className="mt-4 flex items-center gap-4">

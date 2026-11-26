@@ -117,32 +117,32 @@ export function UrbanServiceCard({
         </div>
 
         {/* Floating "Add" Button overlapping bottom-right edge exactly like Urban Company */}
-        <div className="absolute -bottom-3 right-2.5 z-10">
+        <div className="absolute -bottom-3.5 right-1 z-10">
           <AddToCartButton service={service} variant="urbanFloating" />
         </div>
       </div>
 
       {/* 2. Service Details */}
-      <div className="pt-3.5 pb-1 flex flex-col flex-1">
+      <div className="pt-4 pb-1 flex flex-col flex-1">
         {/* Title */}
         <Link href={targetHref} onClick={handleCardClick} className="block cursor-pointer">
-          <h3 className="font-semibold text-sm sm:text-base text-slate-900 line-clamp-2 leading-snug group-hover:text-black transition-colors">
+          <h3 className="font-semibold text-[15px] sm:text-base text-slate-900 line-clamp-2 leading-snug group-hover:text-black transition-colors">
             {name}
           </h3>
         </Link>
 
         {/* Rating & Duration Row: ★ 4.81 (8.2M) · 60 MINS */}
-        <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-600 font-medium">
-          <Star className="size-3 fill-slate-800 text-slate-800 shrink-0" />
-          <span className="font-bold text-slate-800">{rating}</span>
+        <div className="mt-1 flex items-center gap-1 text-xs text-slate-600 font-medium">
+          <Star className="size-3 fill-slate-700 text-slate-700 shrink-0" />
+          <span className="font-bold text-slate-700">{rating}</span>
           <span className="text-slate-500 font-normal">({reviewsStr})</span>
-          <span className="text-slate-400 font-bold">·</span>
+          <span className="text-slate-400 font-bold mx-0.5">·</span>
           <span className="uppercase text-[11px] sm:text-xs font-semibold text-slate-600">{durationStr}</span>
         </div>
 
         {/* Price Row: ₹958  ₹1,098 */}
         <div className="mt-1.5 flex items-baseline gap-2">
-          <span className="font-bold text-sm sm:text-base text-slate-900">
+          <span className="font-bold text-base sm:text-[17px] text-slate-900">
             ₹{price.toLocaleString("en-IN")}
           </span>
           {originalPrice > price ? (

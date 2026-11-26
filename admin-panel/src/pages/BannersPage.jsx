@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Pencil, Plus, Trash2, Sparkles, MoveHorizontal, Sliders } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge, Button, Card, PageHeader, SearchInput, Select } from '../components/ui'
@@ -171,6 +172,32 @@ export function BannersPage() {
           </>
         }
       />
+
+      {/* Home Screen Builder cross-link notice */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-primary-200/80 bg-primary-50/60 p-4 dark:border-primary-900/40 dark:bg-primary-950/20">
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-900/60 dark:text-primary-300">
+            <Sparkles className="size-5" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-100">
+              Managing Homepage Slideshows & Hero Banners?
+            </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Homepage hero sliders and custom carousel sections are directly configured with live reordering in the{' '}
+              <Link to="/home-sections" className="font-semibold text-primary-600 underline hover:text-primary-700 dark:text-primary-400">
+                Home Screen Builder
+              </Link>. Use this page for section-targeted banners (Cart, Categories, Services, Search).
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/home-sections"
+          className="shrink-0 inline-flex items-center justify-center rounded-xl bg-primary-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-primary-700 transition"
+        >
+          Open Home Screen Builder →
+        </Link>
+      </div>
 
       <Card className="overflow-hidden p-0">
         {loading.banners ? (

@@ -73,6 +73,10 @@ export async function wallPanelMarkDelivered(body) {
   return postWebsiteApi('/api/wall-panel/employee/mark-delivered', body)
 }
 
+export async function verifyPartnerKyc(body) {
+  return postWebsiteApi('/api/admin/partners/verify-kyc', body)
+}
+
 export async function wallPanelVerifyDeliveryOtp(body) {
   return postWebsiteApi('/api/wall-panel/employee/verify-delivery-otp', body)
 }

@@ -148,6 +148,7 @@ export function isPartnerAssignable(tech: TechnicianDoc | Record<string, unknown
   if (kycStatus && kycStatus !== "approved") return false;
   const accountStatus = normalizeVerificationStatus(data);
   if (isBlockedAccountLifecycle(accountStatus)) return false;
+  if (accountStatus !== "active" && accountStatus !== "approved") return false;
   return true;
 }
 

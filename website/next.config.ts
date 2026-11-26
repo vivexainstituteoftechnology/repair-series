@@ -49,6 +49,53 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/login",
+        destination: "/auth",
+        permanent: true,
+      },
+      {
+        source: "/book",
+        destination: "/services",
+        permanent: true,
+      },
+      {
+        source: "/book/:serviceId*",
+        destination: "/services/:serviceId*",
+        permanent: true,
+      },
+      {
+        source: "/dashboard",
+        destination: "/dashboard/profile",
+        permanent: true,
+      },
+      {
+        source: "/auth/sign-up",
+        destination: "/auth",
+        permanent: true,
+      },
+      {
+        source: "/category/:categoryId*",
+        destination: "/categories/:categoryId*",
+        permanent: true,
+      },
+      {
+        source: "/wall-panel/book",
+        destination: "/wall-panel",
+        permanent: true,
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/:applianceSlug(ac-repair|refrigerator-repair|washing-machine-repair|microwave-repair|chimney-repair|ro-repair|geyser-repair|tv-repair|appliance-repair)/:areaSlug",
+        destination: "/service-areas/:areaSlug/:applianceSlug",
+      },
+    ];
+  },
 };
 
 export default nextConfig;

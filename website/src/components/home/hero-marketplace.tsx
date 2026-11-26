@@ -19,6 +19,8 @@ import {
 import { getCategoryPath } from "@/lib/catalog/slug";
 import type { HomeBannerDoc } from "@/lib/home-sections/resolve";
 import { DynamicBannerSlide } from "@/components/banners/dynamic-banner-slide";
+import { useServiceModal } from "@/context/service-modal-context";
+import { isWallPanelCatalogItem } from "@/lib/catalog/wallPanel";
 
 type CategoryDoc = {
   id: string;
@@ -35,10 +37,26 @@ type CategoryDoc = {
   serviceTypeId?: string;
 };
 
+export type HeroMarketplaceItem = {
+  id: string;
+  itemType: "service" | "category" | "serviceType" | "serviceCategory" | string;
+  targetId: string;
+  title?: string;
+  image?: string;
+  badge?: string;
+  visible?: boolean;
+  displayOrder?: number;
+  href?: string;
+};
+
 type HeroMarketplaceProps = {
   categories: CategoryDoc[];
+  services?: any[];
   serviceTypes?: CategoryDoc[];
+  serviceCategories?: CategoryDoc[];
   banners?: HomeBannerDoc[];
+  customItems?: HeroMarketplaceItem[];
+  onSelectServiceType?: (id: string) => void;
 };
 
 // High-fidelity curated service cards with estimated arrival times & realistic 3D icons (matching Urban Company reference)
@@ -158,8 +176,74 @@ const DEFAULT_PROMO_SLIDES = [
   },
 ];
 
-export function HeroMarketplace({ categories, banners }: HeroMarketplaceProps) {
+export function HeroMarketplace({
+  categories,
+  services = [],
+  serviceTypes = [],
+  serviceCategories = [],
+  banners,
+  customItems,
+  onSelectServiceType,
+}: HeroMarketplaceProps) {
+  const { openServiceModal } = useServiceModal();
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  // If customItems configured from Hero Marketplace editor, resolve them dynamically
+  const dynamicItems = useMemo(() => {
+    if (!customItems || customItems.length === 0) return null;
+    const active = customItems
+      .filter((it) => it.visible !== false)
+      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    if (active.length === 0) return null;
+
+    return active.map((it, idx) => {
+      let resolvedTitle = it.title || "";
+      let resolvedImage = it.image || "";
+      let resolvedBadge = it.badge || "30 mins";
+      let resolvedHref = it.href || "";
+      const isService = it.itemType === "service";
+      const isServiceType = it.itemType === "serviceType";
+      let dbService: any = null;
+
+      if (it.itemType === "service") {
+        dbService = (services || []).find((s) => s.id === it.targetId);
+        resolvedTitle = it.title || dbService?.name || dbService?.title || "Service";
+        resolvedImage = it.image || dbService?.image || dbService?.imageUrl || dbService?.homeImage || "";
+        resolvedBadge = it.badge || "45 mins";
+      } else if (it.itemType === "category") {
+        const cat = (categories || []).find((c) => c.id === it.targetId);
+        resolvedTitle = it.title || cat?.name || cat?.title || "Category";
+        resolvedImage = it.image || cat?.homeImage || cat?.imageUrl || cat?.image || cat?.icon || "";
+        resolvedBadge = it.badge || "30 mins";
+        resolvedHref = `/categories/${it.targetId}`;
+      } else if (it.itemType === "serviceType") {
+        const st = (serviceTypes || []).find((t) => t.id === it.targetId);
+        resolvedTitle = it.title || st?.title || st?.name || "Service Type";
+        resolvedImage = it.image || st?.homeImage || st?.imageUrl || st?.image || st?.icon || "";
+        resolvedBadge = it.badge || "25 mins";
+        resolvedHref = "#";
+      } else if (it.itemType === "serviceCategory") {
+        const sc = (serviceCategories || []).find((c) => c.id === it.targetId);
+        resolvedTitle = it.title || sc?.title || sc?.name || "Category";
+        resolvedImage = it.image || sc?.homeImage || sc?.imageUrl || sc?.image || sc?.icon || "";
+        resolvedBadge = it.badge || "30 mins";
+        resolvedHref = `/categories/${it.targetId}`;
+      }
+
+      return {
+        id: it.id,
+        targetId: it.targetId,
+        uniqueKey: `dynamic-${it.id}-${idx}`,
+        name: resolvedTitle,
+        img: resolvedImage,
+        badge: resolvedBadge,
+        href: resolvedHref,
+        isService,
+        isServiceType,
+        serviceObj: dbService || { id: it.targetId, name: resolvedTitle, title: resolvedTitle, image: resolvedImage },
+      };
+    });
+  }, [customItems, services, categories, serviceTypes, serviceCategories]);
 
   // Match Firestore categories with curated items or fallback to real categories
   const displayCategories = useMemo(() => {
@@ -197,6 +281,8 @@ export function HeroMarketplace({ categories, banners }: HeroMarketplaceProps) {
     });
   }, [categories]);
 
+  const itemsToRender = dynamicItems || displayCategories;
+
   // Active slide duration
   const activeSlideDuration = useMemo(() => {
     if (banners && banners.length > 0) {
@@ -223,32 +309,55 @@ export function HeroMarketplace({ categories, banners }: HeroMarketplaceProps) {
           <div>
             {/* 4 columns across Mobile, Tablet, and Desktop */}
             <div className="grid grid-cols-4 gap-2.5 sm:gap-3.5">
-              {displayCategories.map((cat, idx) => {
-                const href = cat.href || `/categories/${cat.id}`;
+              {itemsToRender.map((item, idx) => {
+                const isService = (item as any).isService;
+                const isServiceType = (item as any).isServiceType;
+                const href = item.href || (isServiceType ? "#" : `/categories/${item.id}`);
+
+                const handleClick = (e: React.MouseEvent) => {
+                  if (isService) {
+                    e.preventDefault();
+                    openServiceModal((item as any).serviceObj);
+                    return;
+                  }
+                  if (isServiceType) {
+                    e.preventDefault();
+                    onSelectServiceType?.(String((item as any).targetId || item.id));
+                    return;
+                  }
+                };
+
                 return (
                   <Link
-                    key={cat.uniqueKey || `${cat.id}-${idx}`}
+                    key={item.uniqueKey || `${item.id}-${idx}`}
                     href={href}
+                    onClick={handleClick}
                     className="group relative flex flex-col items-center text-center p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/80 lg:border-slate-100 bg-white hover:border-slate-300 hover:shadow-md transition-all duration-200"
                   >
                     {/* Time / Speed Badge — Always on top (z-10) across all views */}
-                    <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black text-emerald-700 border border-emerald-200 shadow-2xs">
-                      {cat.badge}
-                    </span>
+                    {item.badge ? (
+                      <span className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black text-emerald-700 border border-emerald-200 shadow-2xs">
+                        {item.badge}
+                      </span>
+                    ) : null}
 
                     {/* Image / Icon container */}
                     <div className="relative z-0 size-14 sm:size-18 lg:size-20 rounded-xl sm:rounded-2xl overflow-hidden bg-slate-50 border border-slate-100/80 mb-2 sm:mb-2.5 p-0.5 sm:p-1 flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
-                      <img
-                        src={cat.img}
-                        alt={cat.name}
-                        className="size-full object-cover rounded-lg sm:rounded-xl"
-                        loading="lazy"
-                      />
+                      {item.img ? (
+                        <img
+                          src={item.img}
+                          alt={item.name}
+                          className="size-full object-cover rounded-lg sm:rounded-xl"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <Wrench className="size-6 text-slate-300" />
+                      )}
                     </div>
 
-                    {/* Category Title */}
+                    {/* Title */}
                     <span className="relative z-10 text-[11px] sm:text-xs lg:text-[13px] font-bold text-slate-800 group-hover:text-[#C86A37] transition-colors line-clamp-2 leading-snug">
-                      {cat.name}
+                      {item.name}
                     </span>
                   </Link>
                 );

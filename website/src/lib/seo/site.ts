@@ -43,16 +43,17 @@ export function cityServiceTitle(service: string, city: ServiceCity): string {
 }
 
 export function buildDefaultDescription(city?: ServiceCity): string {
-  const cities = city ? [city] : [...SERVICE_CITIES];
-  const cityPhrase = cities.join(", ");
-  return `Book trusted home appliance repair and cleaning in ${cityPhrase}. Same-day AC repair, washing machine service, RO service, electrician, plumber & more. Verified technicians, transparent pricing.`;
+  if (city) {
+    return `Book trusted home appliance repair and service in ${city}. Same-day AC repair, washing machine service, refrigerator repair, microwave & RO service by verified technicians. 30-day warranty.`;
+  }
+  return `Book trusted home appliance repair in Gurgaon (Gurugram) across 188+ sectors. Same-day AC repair, washing machine service, refrigerator repair, microwave, RO & geyser service. Verified technicians, transparent pricing & 30-day warranty.`;
 }
 
 export function buildDefaultTitle(city?: ServiceCity): string {
   if (city) {
-    return `Home Appliance Repair & Cleaning in ${city} | ${SITE_NAME}`;
+    return `Home Appliance Repair & Service in ${city} | ${SITE_NAME}`;
   }
-  return `Home Appliance Repair in Gurugram, Hyderabad & Aligarh | ${SITE_NAME}`;
+  return `Home Appliance Repair in Gurgaon (Gurugram) | Same-Day Service | ${SITE_NAME}`;
 }
 
 export function buildCityLandingCopy(city: ServiceCity) {

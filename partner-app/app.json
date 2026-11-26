@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "Repair Series Partner",
+    "slug": "repair-series-partner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": false,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#C45508"
+    },
+    "scheme": "repairseriespartner",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.repairseries.partner",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Repair Series Partner uses your location to assign doorstep repair bookings near you and provide navigation directions to customer addresses.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Repair Series Partner uses background location while on duty to assign high-priority urgent repair jobs near your service zone."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#C45508"
+      },
+      "package": "com.repairseries.partner",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Repair Series Partner to access your location for job assignments."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#C45508"
+        }
+      ],
+      "expo-asset",
+      "expo-font"
+    ]
+  }
+}

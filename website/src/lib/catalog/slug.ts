@@ -53,7 +53,7 @@ export function getBookPath(service: {
   status?: string | null;
 }): string {
   if (isComingSoonService(service)) return getComingSoonPath(service);
-  return getServicePath(service).replace("/services/", "/book/");
+  return getServicePath(service);
 }
 
 export function getCategoryPath(category: {
@@ -69,18 +69,14 @@ export function getCategoryPath(category: {
   return `/categories/${category.id}`;
 }
 
-/** Legacy singular path — supported via /category/[id] route. */
+/** Legacy singular path — forwards to modern /categories/[id] path. */
 export function getCategoryPathLegacy(category: {
   id: string;
   slug?: string | null;
   name?: string | null;
   title?: string | null;
 }): string {
-  const explicit = String(category.slug ?? "").trim();
-  if (explicit) return `/category/${explicit}`;
-  const name = String(category.name ?? category.title ?? "").trim();
-  if (name) return `/category/${slugify(name)}`;
-  return `/category/${category.id}`;
+  return getCategoryPath(category);
 }
 
 export function getHierarchyPath(

@@ -36,12 +36,54 @@ export function HomeJsonLd({ faqs = DEFAULT_FAQS }: { faqs?: FaqItem[] }) {
     url: SITE_URL,
     image: `${SITE_URL}/web-app-manifest-512x512.png`,
     description: buildDefaultDescription(),
-    areaServed: SERVICE_CITIES.map((city) => ({
-      "@type": "City",
-      name: city,
-    })),
-    serviceType: SEO_KEYWORDS,
+    telephone: "+911800000111",
     priceRange: "₹₹",
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: "Sector 37D",
+      addressLocality: "Gurugram",
+      addressRegion: "Haryana",
+      postalCode: "122001",
+      addressCountry: "IN",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: 28.4012186,
+      longitude: 76.9557952,
+    },
+    hasMap: "https://www.google.com/maps/place/Repair+Series/@28.4012186,76.9557952,17z",
+    openingHoursSpecification: [
+      {
+        "@type": "OpeningHoursSpecification",
+        dayOfWeek: [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday",
+        ],
+        opens: "08:00",
+        closes: "21:00",
+      },
+    ],
+    areaServed: [
+      {
+        "@type": "City",
+        name: "Gurgaon",
+      },
+      ...SERVICE_CITIES.map((city) => ({
+        "@type": "City",
+        name: city,
+      })),
+    ],
+    serviceType: SEO_KEYWORDS,
+    sameAs: [
+      "https://www.instagram.com/repairseries/",
+      "https://play.google.com/store/apps/details?id=com.repairseries.user",
+      "https://www.google.com/maps/place/Repair+Series/@28.4012186,76.9557952,17z",
+    ],
   };
 
   const organization = {

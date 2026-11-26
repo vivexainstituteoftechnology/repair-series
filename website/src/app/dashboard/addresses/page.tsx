@@ -261,6 +261,19 @@ export default function AddressesPage() {
             lat={form.lat}
             lng={form.lng}
             onChange={(lat, lng) => setForm((f) => ({ ...f, lat, lng }))}
+            onAddressPopulate={(details) => {
+              setForm((f) => ({
+                ...f,
+                lat: details.lat,
+                lng: details.lng,
+                street: details.street || f.street,
+                area: details.area || f.area,
+                city: details.city || f.city,
+                state: details.state || f.state,
+                pincode: details.pincode || f.pincode,
+                fullAddress: details.fullAddress || f.fullAddress,
+              }));
+            }}
           />
 
           <div className="grid gap-3 sm:grid-cols-2">
