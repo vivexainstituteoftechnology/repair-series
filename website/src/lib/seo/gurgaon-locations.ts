@@ -41,6 +41,9 @@ export type ApplianceService = {
   subServices: string[];
   typesSupported: string[];
   faqTemplates: Array<{ q: string; a: string }>;
+  image?: string;
+  rating?: number;
+  reviewCount?: string;
 };
 
 export const GURGAON_ZONES: GurgaonZone[] = [
@@ -137,6 +140,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 199,
     avgDuration: "45–60 mins",
     warranty: "30-Day Service Guarantee + Up to 90 Days on Spare Parts",
+    image: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=500&auto=format&fit=crop&q=80",
+    rating: 4.82,
+    reviewCount: "8.4K",
     commonIssues: [
       "AC not cooling or blowing hot air",
       "Water leakage from indoor unit",
@@ -176,6 +182,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 199,
     avgDuration: "45–60 mins",
     warranty: "30-Day Service Guarantee + Up to 90 Days on Spare Parts",
+    image: "https://images.unsplash.com/photo-1584992236310-6edddc08acff?w=500&auto=format&fit=crop&q=80",
+    rating: 4.84,
+    reviewCount: "6.2K",
     commonIssues: [
       "Fridge not cooling / freezer cooling but lower compartment warm",
       "Excess ice buildup / defrost timer failure",
@@ -211,6 +220,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 199,
     avgDuration: "45–75 mins",
     warranty: "30-Day Service Guarantee + Up to 90 Days on Spare Parts",
+    image: "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=500&auto=format&fit=crop&q=80",
+    rating: 4.81,
+    reviewCount: "5.8K",
     commonIssues: [
       "Machine not spinning, draining water, or taking water",
       "Loud vibrating noise during spin cycle",
@@ -246,6 +258,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 199,
     avgDuration: "30–60 mins",
     warranty: "30-Day Service Guarantee + Genuine Spare Parts",
+    image: "https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=500&auto=format&fit=crop&q=80",
+    rating: 4.79,
+    reviewCount: "3.1K",
     commonIssues: [
       "Microwave running but not heating food",
       "Sparking or burning smell inside the cavity",
@@ -277,6 +292,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 299,
     avgDuration: "60–90 mins",
     warranty: "30-Day Service Guarantee",
+    image: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&auto=format&fit=crop&q=80",
+    rating: 4.89,
+    reviewCount: "4.5K",
     commonIssues: [
       "Low suction power / oil dripping from filters",
       "Loud motor humming noise or vibration",
@@ -308,6 +326,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 199,
     avgDuration: "30–60 mins",
     warranty: "30-Day Service Guarantee + Genuine Filter Cartridges",
+    image: "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?w=500&auto=format&fit=crop&q=80",
+    rating: 4.86,
+    reviewCount: "7.9K",
     commonIssues: [
       "Slow water flow / tank not filling up",
       "Foul taste, bad odor, or high TDS in purified water",
@@ -339,6 +360,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 199,
     avgDuration: "40–60 mins",
     warranty: "30-Day Service Guarantee",
+    image: "https://images.unsplash.com/photo-1585338107529-13afc5f02586?w=500&auto=format&fit=crop&q=80",
+    rating: 4.83,
+    reviewCount: "3.7K",
     commonIssues: [
       "Water not heating or taking too long to heat",
       "Water leaking from tank or inlet/outlet valve",
@@ -370,6 +394,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 249,
     avgDuration: "60–90 mins",
     warranty: "30-Day Service Guarantee + Up to 90 Days on Parts",
+    image: "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=500&auto=format&fit=crop&q=80",
+    rating: 4.78,
+    reviewCount: "2.8K",
     commonIssues: [
       "Sound working but no picture / black screen",
       "Horizontal or vertical colored lines on display",
@@ -401,6 +428,9 @@ export const APPLIANCE_SERVICES: ApplianceService[] = [
     startingPrice: 199,
     avgDuration: "45–90 mins",
     warranty: "30-Day Service Guarantee",
+    image: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=500&auto=format&fit=crop&q=80",
+    rating: 4.91,
+    reviewCount: "12.3K",
     commonIssues: [
       "Electrical appliance not powering on",
       "Strange noise, vibration, or burning smell",

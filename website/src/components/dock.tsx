@@ -18,7 +18,7 @@ const DOCK_ITEMS: DockItem[] = [
     name: "Home",
     href: "/",
     icon: Home,
-    matches: (pathname) => pathname === "/",
+    matches: (pathname) => pathname === "/" || pathname.startsWith("/service-areas"),
   },
   {
     name: "Services",

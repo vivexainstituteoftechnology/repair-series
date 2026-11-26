@@ -12,7 +12,7 @@ export function MobileGlobalHeader() {
   const [isScrollingDown, setIsScrollingDown] = useState(false);
   const lastScrollY = useRef(0);
 
-  const isHomePage = pathname === "/";
+  const isHomePage = pathname === "/" || pathname.startsWith("/service-areas");
 
   // Hide on dedicated Wall Panels studio screens (Requirement 2)
   if (pathname.startsWith("/wall-panel")) return null;
