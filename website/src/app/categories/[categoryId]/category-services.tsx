@@ -4,6 +4,7 @@ import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { UrbanServiceCard } from "@/components/services/urban-service-card";
+import { SkeletonServiceCard } from "@/components/ui/skeleton";
 import { getDb } from "@/lib/firebase/firestore";
 import type { ServiceDoc } from "@/lib/booking/types";
 import { AlertCircle, ArrowRight, SearchX } from "lucide-react";
@@ -102,24 +103,9 @@ export function CategoryServices({ categoryId }: { categoryId: string }) {
           </div>
         </div>
       ) : loading ? (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="flex flex-col overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm"
-            >
-              <div className="aspect-[16/10] w-full animate-pulse bg-gray-200" />
-              <div className="flex flex-1 flex-col p-5">
-                <div className="mb-4 flex items-start justify-between gap-4">
-                  <div className="h-6 w-2/3 animate-pulse rounded-md bg-gray-200" />
-                  <div className="h-6 w-16 animate-pulse rounded-full bg-gray-100" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
-                  <div className="h-4 w-4/5 animate-pulse rounded bg-gray-100" />
-                </div>
-              </div>
-            </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+          {Array.from({ length: 5 }).map((_, idx) => (
+            <SkeletonServiceCard key={idx} />
           ))}
         </div>
       ) : services.length === 0 ? (

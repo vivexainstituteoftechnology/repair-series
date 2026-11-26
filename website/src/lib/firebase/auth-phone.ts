@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  initializeRecaptchaConfig,
   RecaptchaVerifier,
   signInWithCustomToken,
   signInWithPhoneNumber,
   signOut,
+  type Auth,
   type ConfirmationResult,
 } from "firebase/auth";
 import { getAuthClient } from "@/lib/firebase/auth";
@@ -14,18 +14,11 @@ import { parseIndiaMobile } from "@/lib/auth/phone";
 
 export const PHONE_RECAPTCHA_ID = "rs-phone-recaptcha";
 
-const OTP_SEND_TIMEOUT_MS = 90_000;
-
-const RECAPTCHA_UI = {
-  size: "compact" as const,
-  theme: "light" as const,
-};
+const OTP_SEND_TIMEOUT_MS = 60_000;
 
 let verifier: RecaptchaVerifier | null = null;
-let captchaVerified = false;
 let confirmation: ConfirmationResult | null = null;
 let sendInFlight = false;
-let mountGeneration = 0;
 
 function requireBrowser() {
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -49,109 +42,124 @@ function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promi
   });
 }
 
-function recaptchaHost() {
-  const host = document.getElementById(PHONE_RECAPTCHA_ID);
-  if (!host) {
-    throw new Error("Security check is not ready. Refresh the page and try again.");
+/**
+ * Creates a brand new, isolated DOM container for reCAPTCHA.
+ * Removing the old element guarantees Google's recaptcha__en.js will NEVER
+ * throw "reCAPTCHA has already been rendered in this element".
+ */
+function getFreshRecaptchaHost(): HTMLElement {
+  requireBrowser();
+  const existing = document.getElementById(PHONE_RECAPTCHA_ID);
+  if (existing) {
+    try {
+      existing.remove();
+    } catch {
+      /* ignore */
+    }
   }
+  const host = document.createElement("div");
+  host.id = PHONE_RECAPTCHA_ID;
+  host.style.position = "fixed";
+  host.style.bottom = "0";
+  host.style.right = "0";
+  host.style.width = "0";
+  host.style.height = "0";
+  host.style.overflow = "hidden";
+  host.setAttribute("aria-hidden", "true");
+  document.body.appendChild(host);
   return host;
 }
 
 export function isPhoneCaptchaVerified() {
-  return captchaVerified;
+  return true;
 }
 
 export function clearPhoneVerifier() {
   if (sendInFlight) return;
-  try {
-    verifier?.clear();
-  } catch {
-    /* ignore */
+  if (verifier) {
+    try {
+      verifier.clear();
+    } catch {
+      /* ignore */
+    }
+    verifier = null;
   }
-  verifier = null;
-  captchaVerified = false;
-  confirmation = null;
-  const host = document.getElementById(PHONE_RECAPTCHA_ID);
-  host?.replaceChildren();
+  const existing = document.getElementById(PHONE_RECAPTCHA_ID);
+  if (existing) {
+    try {
+      existing.remove();
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
-/** Mount visible compact reCAPTCHA checkbox. Call when phone step is shown. */
-export async function mountVisiblePhoneRecaptcha(
-  onVerifiedChange?: (verified: boolean) => void,
-): Promise<void> {
+/**
+ * Gets or creates the invisible reCAPTCHA verifier with a clean DOM target.
+ */
+export function getOrCreatePhoneVerifier(auth: Auth, forceReset = false): RecaptchaVerifier {
   requireBrowser();
-  const auth = getAuthClient();
-  if (!auth) throw new Error("Firebase Auth is not configured.");
 
-  clearPhoneVerifier();
-  const gen = ++mountGeneration;
-  recaptchaHost().replaceChildren();
-
-  try {
-    await initializeRecaptchaConfig(auth);
-  } catch (error) {
-    console.warn("[phone-auth] initializeRecaptchaConfig failed", error);
+  if (verifier && !forceReset) {
+    return verifier;
   }
 
-  const next = new RecaptchaVerifier(auth, PHONE_RECAPTCHA_ID, {
-    ...RECAPTCHA_UI,
+  clearPhoneVerifier();
+  const host = getFreshRecaptchaHost();
+
+  const next = new RecaptchaVerifier(auth, host, {
+    size: "invisible",
     callback: () => {
-      if (gen !== mountGeneration) return;
-      captchaVerified = true;
-      onVerifiedChange?.(true);
+      // Invisible verification passed
     },
     "expired-callback": () => {
-      if (gen !== mountGeneration) return;
-      captchaVerified = false;
-      onVerifiedChange?.(false);
+      clearPhoneVerifier();
     },
   });
 
   verifier = next;
-  try {
-    await next.render();
-  } catch (error) {
-    console.warn("[phone-auth] recaptcha render failed", error);
-    captchaVerified = false;
-    onVerifiedChange?.(false);
-    clearPhoneVerifier();
-    throw error;
-  }
+  return next;
+}
+
+/** Legacy export kept for backward compatibility */
+export async function mountVisiblePhoneRecaptcha(
+  onVerifiedChange?: (verified: boolean) => void,
+): Promise<void> {
+  onVerifiedChange?.(true);
 }
 
 export async function sendCustomerOtp(rawPhone: string) {
   if (sendInFlight) {
-    throw new Error("Sending OTP...");
+    throw new Error("Sending OTP in progress. Please wait.");
   }
   const parsed = parseIndiaMobile(rawPhone);
   if (!parsed.ok) throw new Error(parsed.error);
   if (!parsed.e164.startsWith("+")) {
     throw new Error("Invalid phone number.");
   }
-  if (!captchaVerified || !verifier) {
-    throw new Error("Please verify that you're not a robot.");
-  }
 
   const auth = getAuthClient();
   if (!auth) throw new Error("Firebase Auth is not configured.");
 
-  const appVerifier = verifier;
+  // If user already has an active session for this phone, bypass
+  if (auth.currentUser && auth.currentUser.phoneNumber === parsed.e164) {
+    return { e164: parsed.e164, alreadySignedIn: true };
+  }
+
   sendInFlight = true;
+  let appVerifier: RecaptchaVerifier | null = null;
+
   try {
+    // Always obtain a fresh, clean verifier with a brand new DOM container
+    appVerifier = getOrCreatePhoneVerifier(auth, true);
+
     confirmation = await withTimeout(
       signInWithPhoneNumber(auth, parsed.e164, appVerifier),
       OTP_SEND_TIMEOUT_MS,
-      "Unable to send OTP. Please try again.",
+      "Unable to send OTP. Please check your connection and try again.",
     );
-    captchaVerified = false;
-    try {
-      appVerifier.clear();
-    } catch {
-      /* ignore */
-    }
-    verifier = null;
-    recaptchaHost().replaceChildren();
-    return { e164: parsed.e164 };
+
+    return { e164: parsed.e164, alreadySignedIn: false };
   } catch (error) {
     logPhoneOtpFailure(error, {
       hasVerifier: Boolean(appVerifier),
@@ -159,7 +167,7 @@ export async function sendCustomerOtp(rawPhone: string) {
       e164Prefix: parsed.e164.slice(0, 3),
       hostname: typeof window !== "undefined" ? window.location.hostname : "",
     });
-    console.warn("[phone-auth] sendCustomerOtp failed", error);
+    console.warn("[phone-auth] sendCustomerOtp failed:", error);
     confirmation = null;
     clearPhoneVerifier();
     throw toPhoneAuthUserError(error);
@@ -171,7 +179,7 @@ export async function sendCustomerOtp(rawPhone: string) {
 export async function confirmCustomerOtp(code: string) {
   const otp = String(code || "").replace(/\D/g, "");
   if (otp.length !== 6) throw new Error("Enter the 6-digit OTP.");
-  if (!confirmation) throw new Error("Request a new OTP first.");
+  if (!confirmation) throw new Error("Please request a new OTP first.");
   try {
     const cred = await confirmation.confirm(otp);
     return cred.user;

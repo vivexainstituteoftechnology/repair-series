@@ -8,6 +8,7 @@ import { getCategoryPath, getHierarchyPath } from "@/lib/catalog/slug";
 import { isWallPanelCatalogItem } from "@/lib/catalog/wallPanel";
 import { isCatalogActive, sortByDisplayOrder } from "@/lib/catalog/hierarchy";
 import { getDb } from "@/lib/firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type CategoryDoc = {
   id: string;
@@ -107,8 +108,14 @@ export function CategoriesGrid() {
         {Array.from({ length: 8 }).map((_, idx) => (
           <div
             key={idx}
-            className="h-32 animate-pulse rounded-2xl border bg-card"
-          />
+            className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-3 shadow-xs"
+          >
+            <Skeleton className="aspect-[4/3] w-full rounded-xl mb-3" />
+            <div className="flex items-center justify-between gap-2 px-1 py-1">
+              <Skeleton className="h-4 w-3/5 rounded-md" />
+              <Skeleton className="size-4 rounded-full" />
+            </div>
+          </div>
         ))}
       </div>
     );

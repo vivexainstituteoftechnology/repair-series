@@ -81,7 +81,7 @@ export default async function LocationLandingPage({ params }: PageProps) {
     "@type": "LocalBusiness",
     name: `${SITE_NAME} - Appliance Repair in ${location.name}, Gurgaon`,
     url: canonicalUrl,
-    telephone: "+911800000111",
+    telephone: "+919311788877",
     priceRange: "₹₹",
     image: `${SITE_URL}/web-app-manifest-512x512.png`,
     description: `Professional doorstep appliance repair service in ${location.name}, Gurgaon. Same-day AC, washing machine, refrigerator, microwave, and RO service with 30-day warranty.`,

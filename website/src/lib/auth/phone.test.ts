@@ -6,7 +6,7 @@ import {
   parseIndiaMobile,
   phoneLookupValues,
 } from "./phone";
-import { mapPhoneAuthError } from "./phone-errors";
+import { mapPhoneAuthError, toPhoneAuthUserError } from "./phone-errors";
 
 describe("India phone parse", () => {
   it("accepts 10-digit mobile starting 6-9", () => {
@@ -73,5 +73,19 @@ describe("phone auth errors", () => {
       mapPhoneAuthError({ code: "auth/invalid-app-credential", message: "INVALID_APP_CREDENTIAL" }),
       /Authorized domains/,
     );
+  });
+
+  it("produces clean user-facing error in toPhoneAuthUserError without dumping raw debug into message", () => {
+    const err = toPhoneAuthUserError({ code: "auth/invalid-verification-code" });
+    assert.equal(err.message, "Invalid OTP. Please check the code and try again.");
+    assert.equal((err as any).code, "auth/invalid-verification-code");
+    assert.match((err as any).debug, /Firebase debug/);
+  });
+
+  it("cleans and isolates 6-digit OTP codes from SMS autofill formats", () => {
+    const rawSms = "Your RepairSeries verification code is 849201. @repairseries.in #849201";
+    const match = rawSms.match(/\b\d{6}\b/);
+    assert.ok(match);
+    assert.equal(match![0], "849201");
   });
 });

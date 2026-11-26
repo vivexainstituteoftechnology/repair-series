@@ -3,6 +3,7 @@
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { UrbanServiceCard } from "@/components/services/urban-service-card";
+import { SkeletonServiceCard } from "@/components/ui/skeleton";
 import { isComingSoonService } from "@/lib/catalog/slug";
 import { getDb } from "@/lib/firebase/firestore";
 import type { ServiceDoc } from "@/lib/booking/types";
@@ -80,14 +81,7 @@ export function ServicesGrid() {
     return (
       <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
         {Array.from({ length: 10 }).map((_, idx) => (
-          <div key={idx} className="flex flex-col animate-pulse">
-            <div className="aspect-square w-full rounded-2xl bg-slate-200" />
-            <div className="pt-2.5 space-y-2">
-              <div className="h-4 w-3/4 rounded bg-slate-200" />
-              <div className="h-3 w-1/2 rounded bg-slate-100" />
-              <div className="h-4 w-1/3 rounded bg-slate-200" />
-            </div>
-          </div>
+          <SkeletonServiceCard key={idx} />
         ))}
       </div>
     );

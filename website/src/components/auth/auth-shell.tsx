@@ -45,6 +45,7 @@ export function AuthField({
   onChange,
   placeholder,
   autoComplete,
+  disabled = false,
 }: {
   label: string;
   type?: string;
@@ -52,6 +53,7 @@ export function AuthField({
   onChange: (v: string) => void;
   placeholder?: string;
   autoComplete?: string;
+  disabled?: boolean;
 }) {
   return (
     <div>
@@ -64,7 +66,8 @@ export function AuthField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className="h-11 w-full rounded-xl border border-gray-200 bg-background px-4 text-sm outline-none transition-all focus-visible:border-[#C86A37] focus-visible:ring-2 focus-visible:ring-[#C86A37]/20"
+        disabled={disabled}
+        className="h-11 w-full rounded-xl border border-gray-200 bg-background px-4 text-sm outline-none transition-all focus-visible:border-[#C86A37] focus-visible:ring-2 focus-visible:ring-[#C86A37]/20 disabled:opacity-60 disabled:cursor-not-allowed"
       />
     </div>
   );

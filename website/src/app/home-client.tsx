@@ -60,6 +60,11 @@ import {
   type HomeSectionDoc,
 } from "@/lib/home-sections/resolve";
 import { MobileGlobalHeader } from "@/components/header/mobile-global-header";
+import {
+  SkeletonHeroMarketplace,
+  SkeletonSection,
+  SkeletonReviewCard,
+} from "@/components/ui/skeleton";
 
 type CategoryDoc = {
   id: string;
@@ -325,27 +330,36 @@ export function HomePageClient() {
       <main className="pb-16 sm:pb-24">
         <Container>
           {/* SECTION 1: Urban Company Signature Split Hero Card */}
-          <HeroMarketplace
-            categories={categories}
-            services={services}
-            serviceTypes={serviceTypes}
-            serviceCategories={serviceCategories}
-            banners={banners}
-            customItems={heroMarketplaceItems}
-            onSelectServiceType={(id) => {
-              const type = serviceTypes.find((t) => t.id === id);
-              if (type) {
-                if (isWallPanelCatalogItem(type)) {
-                  router.push("/wall-panel");
-                  return;
+          {isLoading ? (
+            <SkeletonHeroMarketplace />
+          ) : (
+            <HeroMarketplace
+              categories={categories}
+              services={services}
+              serviceTypes={serviceTypes}
+              serviceCategories={serviceCategories}
+              banners={banners}
+              customItems={heroMarketplaceItems}
+              onSelectServiceType={(id) => {
+                const type = serviceTypes.find((t) => t.id === id);
+                if (type) {
+                  if (isWallPanelCatalogItem(type)) {
+                    router.push("/wall-panel");
+                    return;
+                  }
+                  setSelectedServiceTypeForModal(type);
                 }
-                setSelectedServiceTypeForModal(type);
-              }
-            }}
-          />
+              }}
+            />
+          )}
 
           {/* SECTION 2: Dynamic Home Sections (Single Unified Marketplace Homepage) */}
-          {useCms ? (
+          {isLoading ? (
+            <div className="space-y-8 my-6">
+              <SkeletonSection title="Most Booked Services" cardCount={4} />
+              <SkeletonSection title="Appliance Repair & Service" cardCount={4} />
+            </div>
+          ) : useCms ? (
             <DynamicHomeSections
               variant="desktop"
               platform="desktopWeb"
@@ -499,7 +513,21 @@ export function HomePageClient() {
           </section>
 
           {/* SECTION 6: Customer Reviews */}
-          {homeReviews.length > 0 || googleReviewUrl ? (
+          {isLoading ? (
+            <section className="py-12 border-t border-slate-200/80">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+                <div className="space-y-2">
+                  <div className="h-4 w-36 bg-slate-200/80 animate-shimmer rounded-md" />
+                  <div className="h-8 w-64 bg-slate-200/80 animate-shimmer rounded-md" />
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <SkeletonReviewCard key={i} />
+                ))}
+              </div>
+            </section>
+          ) : homeReviews.length > 0 || googleReviewUrl ? (
             <section className="py-12 border-t border-slate-200/80">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
                 <div>

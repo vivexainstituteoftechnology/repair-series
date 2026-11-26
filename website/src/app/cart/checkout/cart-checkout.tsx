@@ -36,6 +36,7 @@ import {
 import { geocodeAddressString, reverseGeocode } from "@/lib/geocode";
 import { getDb } from "@/lib/firebase/firestore";
 import { loadService } from "@/lib/services/helpers";
+import { SkeletonCheckoutSummary } from "@/components/ui/skeleton";
 
 export function CartCheckoutClient() {
   const router = useRouter();
@@ -304,8 +305,8 @@ export function CartCheckoutClient() {
 
   if (authLoading) {
     return (
-      <Container className="py-16">
-        <div className="h-64 animate-pulse rounded-[24px] bg-muted/50" />
+      <Container className="py-10 max-w-3xl">
+        <SkeletonCheckoutSummary />
       </Container>
     );
   }
@@ -484,9 +485,11 @@ export function CartCheckoutClient() {
                 ))}
               </div>
               {slotsLoading ? (
-                <p className="flex items-center gap-2 text-sm text-[#64748b]">
-                  <Loader2 className="size-4 animate-spin" /> Loading slots…
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="h-9 w-24 rounded-xl bg-slate-200/80 animate-shimmer" />
+                  ))}
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {availableSlots.map((s) => (

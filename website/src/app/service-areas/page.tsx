@@ -77,7 +77,7 @@ export default function ServiceAreasIndexPage() {
     image: `${SITE_URL}/web-app-manifest-512x512.png`,
     description:
       "Professional doorstep home appliance repair services across all sectors and localities in Gurgaon (Gurugram), Haryana.",
-    telephone: "+911800000111",
+    telephone: "+919311788877",
     priceRange: "₹₹",
     address: {
       "@type": "PostalAddress",

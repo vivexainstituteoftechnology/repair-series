@@ -5,7 +5,6 @@ import { SiteFooter } from "@/components/site-footer";
 import Dock from "@/components/dock";
 import { SiteHeader } from "@/components/site-header";
 import { MobileAppHeader } from "@/components/mobile-app-header";
-import { LocationGate } from "@/components/location-gate";
 import { AppProviders } from "@/components/providers";
 import { SplashScreen } from "@/components/splash-screen";
 import { CartDrawer } from "@/components/cart/cart-drawer";
@@ -103,8 +102,7 @@ export default function RootLayout({
           <SplashScreen />
           <CartDrawer />
           <ServiceDetailModal />
-          <LocationGate />
-            <SiteHeader />
+          <SiteHeader />
           <MobileAppHeader />
           <main className="flex-1 pb-24 sm:pb-28">{children}</main>
           <div className="hidden md:block">

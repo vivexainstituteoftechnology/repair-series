@@ -36,7 +36,7 @@ export function HomeJsonLd({ faqs = DEFAULT_FAQS }: { faqs?: FaqItem[] }) {
     url: SITE_URL,
     image: `${SITE_URL}/web-app-manifest-512x512.png`,
     description: buildDefaultDescription(),
-    telephone: "+911800000111",
+    telephone: "+919311788877",
     priceRange: "₹₹",
     address: {
       "@type": "PostalAddress",

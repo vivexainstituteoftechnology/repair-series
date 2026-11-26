@@ -1,7 +1,7 @@
 import { doc, onSnapshot, type Firestore, type Unsubscribe } from "firebase/firestore";
 
 export const FALLBACK_SUPPORT_EMAIL = "support@repairseries.com";
-export const FALLBACK_SUPPORT_PHONE = "+911800000111";
+export const FALLBACK_SUPPORT_PHONE = "+919311788877";
 
 export type AppPublicSettings = {
   supportEmail: string | null;

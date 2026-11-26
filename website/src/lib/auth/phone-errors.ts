@@ -136,11 +136,12 @@ export function toPhoneAuthUserError(error: unknown): Error {
   const mapped = mapPhoneAuthError(error);
   const debug = formatPhoneAuthDebugLine(error);
   const serialized = serializePhoneAuthError(error);
-  return Object.assign(new Error(`${mapped}\n${debug}`), {
+  return Object.assign(new Error(mapped), {
     name: "PhoneAuthError",
     code: serialized.code,
     customData: serialized.customData,
     identityToolkitMessage: serialized.identityToolkitMessage,
+    debug,
   });
 }
 

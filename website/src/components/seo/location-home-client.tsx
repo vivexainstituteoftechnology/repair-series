@@ -53,6 +53,11 @@ import {
   type HomeSectionDoc,
 } from "@/lib/home-sections/resolve";
 import { MobileGlobalHeader } from "@/components/header/mobile-global-header";
+import {
+  SkeletonHeroMarketplace,
+  SkeletonSection,
+  SkeletonReviewCard,
+} from "@/components/ui/skeleton";
 import { LocalSeoBreadcrumbs } from "@/components/seo/local-seo-breadcrumbs";
 import { useServiceModal } from "@/context/service-modal-context";
 import {
@@ -379,24 +384,28 @@ export function LocationHomeClient({
           </div>
 
           {/* SECTION 1: Urban Company Signature Split Hero Card (Exact Homepage Component) */}
-          <HeroMarketplace
-            categories={categories}
-            services={services}
-            serviceTypes={serviceTypes}
-            serviceCategories={serviceCategories}
-            banners={banners}
-            customItems={heroMarketplaceItems}
-            onSelectServiceType={(id) => {
-              const type = serviceTypes.find((t) => t.id === id);
-              if (type) {
-                if (isWallPanelCatalogItem(type)) {
-                  router.push("/wall-panel");
-                  return;
+          {isLoading ? (
+            <SkeletonHeroMarketplace />
+          ) : (
+            <HeroMarketplace
+              categories={categories}
+              services={services}
+              serviceTypes={serviceTypes}
+              serviceCategories={serviceCategories}
+              banners={banners}
+              customItems={heroMarketplaceItems}
+              onSelectServiceType={(id) => {
+                const type = serviceTypes.find((t) => t.id === id);
+                if (type) {
+                  if (isWallPanelCatalogItem(type)) {
+                    router.push("/wall-panel");
+                    return;
+                  }
+                  setSelectedServiceTypeForModal(type);
                 }
-                setSelectedServiceTypeForModal(type);
-              }
-            }}
-          />
+              }}
+            />
+          )}
 
           {/* SPECIAL SECTION: Featured Selected Appliance Spotlight (When visiting specific appliance URL) */}
           {appliance && (
@@ -508,7 +517,12 @@ export function LocationHomeClient({
 
 
           {/* SECTION 3: Dynamic Home Sections / Trending Services (Homepage Component) */}
-          {useCms ? (
+          {isLoading ? (
+            <div className="space-y-8 my-6">
+              <SkeletonSection title="Most Booked Services" cardCount={4} />
+              <SkeletonSection title="Appliance Repair & Service" cardCount={4} />
+            </div>
+          ) : useCms ? (
             <DynamicHomeSections
               variant="desktop"
               platform="desktopWeb"
@@ -780,22 +794,6 @@ export function LocationHomeClient({
           </section>
         </Container>
       </main>
-
-      {/* Floating WhatsApp Action Button */}
-      <aside aria-label="WhatsApp Contact" className="fixed bottom-24 right-4 sm:bottom-28 sm:right-6 z-40">
-        <a
-          href={whatsappUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Chat on WhatsApp about appliance repair in ${location.name}`}
-          className="flex items-center gap-2 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-2xl hover:bg-[#20bd5a] hover:scale-105 active:scale-95 transition-all"
-        >
-          <MessageCircle className="size-5" />
-          <span className="hidden sm:inline font-bold text-xs tracking-wide">
-            Chat on WhatsApp
-          </span>
-        </a>
-      </aside>
 
       {/* Wall Panels Consultation Modal */}
       <BookConsultationModal

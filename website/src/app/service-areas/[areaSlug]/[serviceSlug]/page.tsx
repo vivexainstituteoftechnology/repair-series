@@ -94,7 +94,7 @@ export default async function ServiceLocationPage({ params }: PageProps) {
     "@type": "LocalBusiness",
     name: `${SITE_NAME} - ${appliance.name} in ${location.name}, Gurgaon`,
     url: canonicalUrl,
-    telephone: "+911800000111",
+    telephone: "+919311788877",
     priceRange: "₹₹",
     image: `${SITE_URL}/web-app-manifest-512x512.png`,
     description: `Professional doorstep ${appliance.name} in ${location.name}, Gurgaon. Arriving in ${location.responseTime} with 30-day warranty and genuine spare parts.`,

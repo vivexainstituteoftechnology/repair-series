@@ -23,6 +23,7 @@ import {
 import { PromoBannerSection } from "@/components/home/promo-banner";
 import { CategoryVideo } from "@/components/category-video";
 import { resolveBannerSectionsForCategory } from "@/lib/banners/sections";
+import { Skeleton, SkeletonText } from "@/components/ui/skeleton";
 
 type CategoryDoc = {
   id: string;
@@ -108,19 +109,16 @@ export function CategoryDetail({
   if (loading) {
     return (
       <div className="flex flex-col overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm">
-        <div className="aspect-[21/9] w-full animate-pulse bg-gray-200 md:aspect-[25/9]" />
+        <Skeleton className="aspect-[21/9] w-full rounded-none md:aspect-[25/9]" />
         <div className="p-6 sm:p-8">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-            <div className="w-full max-w-2xl">
-              <div className="mb-4 h-10 w-2/3 animate-pulse rounded-md bg-gray-200" />
-              <div className="space-y-3">
-                <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
-                <div className="h-4 w-4/5 animate-pulse rounded bg-gray-100" />
-              </div>
+            <div className="w-full max-w-2xl space-y-4">
+              <Skeleton className="h-10 w-2/3 rounded-lg" />
+              <SkeletonText lines={2} />
             </div>
             <div className="flex gap-3">
-              <div className="h-12 w-24 animate-pulse rounded-full bg-gray-100" />
-              <div className="h-12 w-32 animate-pulse rounded-full bg-gray-200" />
+              <Skeleton className="h-12 w-24 rounded-full" />
+              <Skeleton className="h-12 w-32 rounded-full" />
             </div>
           </div>
         </div>

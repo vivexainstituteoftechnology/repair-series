@@ -13,6 +13,7 @@ import { getDb } from "@/lib/firebase/firestore";
 import { saveCustomerAddresses } from "@/lib/firebase/customer";
 import { geocodeAddressString, reverseGeocode } from "@/lib/geocode";
 import { MapPinPicker } from "@/components/map-pin-picker";
+import { SkeletonAddressCard } from "@/components/ui/skeleton";
 
 type SavedAddress = Record<string, unknown> & {
   id?: string;
@@ -63,7 +64,7 @@ function formToSaved(form: AddressForm, id?: string): SavedAddress {
 }
 
 export default function AddressesPage() {
-  const { user, customer } = useAuth();
+  const { user, customer, loading: authLoading } = useAuth();
   const db = useMemo(() => getDb(), []);
   const savedList: SavedAddress[] = Array.isArray(customer?.addresses)
     ? (customer!.addresses as SavedAddress[])
@@ -198,7 +199,13 @@ export default function AddressesPage() {
         <p className="mt-4 text-sm text-red-600">{error}</p>
       ) : null}
 
-      {savedList.length === 0 && !open ? (
+      {authLoading ? (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {Array.from({ length: 2 }).map((_, idx) => (
+            <SkeletonAddressCard key={idx} />
+          ))}
+        </div>
+      ) : savedList.length === 0 && !open ? (
         <div className="mt-8 flex flex-col items-center justify-center rounded-[24px] border border-dashed border-gray-200 bg-gray-50 py-16 text-center">
           <div className="mb-4 flex size-12 items-center justify-center rounded-full bg-[#FFF7ED]">
             <MapPin className="size-6 text-[#C86A37]" />

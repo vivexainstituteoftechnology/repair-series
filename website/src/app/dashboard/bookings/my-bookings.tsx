@@ -19,6 +19,7 @@ import { getCustomerTotal } from "@/lib/booking/finance";
 import { getDb } from "@/lib/firebase/firestore";
 import { canClaimRevisit } from "@/lib/booking/revisit";
 import { SectionPromoBanner } from "@/components/home/promo-banner";
+import { SkeletonBookingCard } from "@/components/ui/skeleton";
 
 export function MyBookings() {
   const { user, loading: authLoading } = useAuth();
@@ -117,7 +118,7 @@ export function MyBookings() {
       {loading ? (
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="h-40 animate-pulse rounded-2xl border bg-card" />
+            <SkeletonBookingCard key={idx} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
