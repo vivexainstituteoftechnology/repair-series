@@ -39,17 +39,18 @@ export function normalizeStatus(status: unknown): string {
   return String(status ?? "pending")
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, "");
+    .replace(/[\s_]+/g, "");
 }
 
 export function getStatusLabel(status: unknown): string {
   const s = normalizeStatus(status);
-  if (s === "new" || s === "pending" || s === "upcoming") return "Upcoming";
-  if (s === "assigned") return "Technician Assigned";
-  if (s === "inprogress" || s === "started") return "In Progress";
+  if (s === "new" || s === "pending" || s === "upcoming") return "Confirmed";
+  if (s === "assigned") return "Partner Assigned";
+  if (s === "partnerontheway" || s === "onway") return "On The Way";
+  if (s === "inprogress" || s === "started") return "Service Started";
   if (s === "completed") return "Completed";
   if (s === "cancelled" || s === "canceled") return "Cancelled";
-  return String(status ?? "Pending");
+  return String(status ?? "Confirmed");
 }
 
 export function getStatusColor(status: unknown): string {
@@ -58,7 +59,8 @@ export function getStatusColor(status: unknown): string {
   if (s === "cancelled" || s === "canceled") return "bg-red-100 text-red-800";
   if (s === "inprogress" || s === "started") return "bg-blue-100 text-blue-800";
   if (s === "assigned") return "bg-purple-100 text-purple-800";
-  return "bg-orange-100 text-orange-800";
+  if (s === "partnerontheway" || s === "onway") return "bg-indigo-100 text-indigo-800";
+  return "bg-amber-100 text-amber-800";
 }
 
 export type TimelineStep = {
@@ -75,37 +77,69 @@ export function getBookingTimeline(booking: BookingDoc): TimelineStep[] {
   const assigned =
     booking.assignedAt?.toDate?.() ??
     (booking.technicianId ? created : null);
-  const onTheWay = booking.arrivalVerifiedAt?.toDate?.() ?? null;
+  const onTheWay =
+    (booking as { onTheWayAt?: { toDate?: () => Date } }).onTheWayAt?.toDate?.() ??
+    booking.arrivalVerifiedAt?.toDate?.() ??
+    null;
   const started = booking.serviceStartedAt?.toDate?.() ?? null;
   const completed = booking.completedAt?.toDate?.() ?? null;
 
-  const assignmentAccepted =
-    String(booking.assignmentStatus ?? "").toUpperCase() === "ACCEPTED" ||
-    String(booking.lifecycleStatus ?? "").toUpperCase() === "PARTNER_ACCEPTED";
-  const acceptedAt =
-    booking.assignmentRespondedAt?.toDate?.() ??
-    booking.assignmentOfferedAt?.toDate?.() ??
-    (assignmentAccepted ? assigned : null);
+  const hasTech = Boolean(booking.technicianId);
+  const isOnTheWay =
+    status === "partnerontheway" ||
+    status === "onway" ||
+    Boolean((booking as { onTheWayAt?: unknown }).onTheWayAt);
+  const hasArrived = Boolean(booking.arrivalVerified);
+  const isStarted = status === "inprogress" || status === "started" || Boolean(booking.serviceStartedAt);
+  const isCompleted = status === "completed" || Boolean(booking.completedAt);
+  const isCancelled = status === "cancelled" || status === "canceled";
 
   const steps: TimelineStep[] = [
-    { key: "booked", label: "Booked", done: !!created, active: status === "new" || status === "pending", at: created },
     {
-      key: "accepted",
-      label: "Partner confirmed",
-      done:
-        status !== "cancelled" &&
-        status !== "canceled" &&
-        (assignmentAccepted || !!booking.technicianId),
-      active: status === "assigned" && assignmentAccepted && !started,
-      at: acceptedAt,
+      key: "confirmed",
+      label: "Booking Confirmed",
+      done: Boolean(created),
+      active: false,
+      at: created,
     },
-    { key: "assigned", label: "Technician Assigned", done: !!booking.technicianId, active: status === "assigned" && !assignmentAccepted, at: assigned },
-    { key: "on_way", label: "On The Way", done: !!booking.arrivalVerified, active: status === "assigned" && !booking.arrivalVerified, at: onTheWay },
-    { key: "in_progress", label: "In Progress", done: status === "inprogress" || status === "completed", active: status === "inprogress" || status === "started", at: started },
-    { key: "completed", label: "Completed", done: status === "completed", active: status === "completed", at: completed },
+    {
+      key: "finding_partner",
+      label: "Finding Partner",
+      done: hasTech && !isCancelled,
+      active: !hasTech && !isCancelled,
+      at: created,
+    },
+    {
+      key: "partner_assigned",
+      label: "Partner Assigned",
+      done: hasTech && (isOnTheWay || hasArrived || isStarted || isCompleted) && !isCancelled,
+      active: hasTech && !isOnTheWay && !hasArrived && !isStarted && !isCompleted && !isCancelled,
+      at: assigned,
+    },
+    {
+      key: "on_the_way",
+      label: "Partner On The Way",
+      done: (hasArrived || isStarted || isCompleted) && !isCancelled,
+      active: (isOnTheWay || hasArrived) && !isStarted && !isCompleted && !isCancelled,
+      at: onTheWay,
+    },
+    {
+      key: "service_started",
+      label: "Service Started",
+      done: isCompleted && !isCancelled,
+      active: isStarted && !isCompleted && !isCancelled,
+      at: started,
+    },
+    {
+      key: "completed",
+      label: "Service Completed",
+      done: isCompleted && !isCancelled,
+      active: isCompleted && !isCancelled,
+      at: completed,
+    },
   ];
 
-  if (status === "cancelled" || status === "canceled") {
+  if (isCancelled) {
     return steps.map((s) => ({ ...s, active: false }));
   }
   return steps;

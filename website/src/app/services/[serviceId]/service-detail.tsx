@@ -23,6 +23,7 @@ import {
   getVariationImage,
 } from "@/lib/services/pricing";
 import { AddToCartButton } from "@/components/services/add-to-cart-button";
+import { useCart } from "@/context/cart-context";
 import {
   AlertCircle,
   ArrowLeft,
@@ -91,6 +92,7 @@ function ProcessStepImage({ src, alt }: { src: string; alt: string }) {
 export function ServiceDetail({ serviceIdOrSlug }: { serviceIdOrSlug: string }) {
   const router = useRouter();
   const { openServiceModal } = useServiceModal();
+  const { addItem } = useCart();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [service, setService] = useState<ServiceDoc | null>(null);
@@ -438,12 +440,28 @@ export function ServiceDetail({ serviceIdOrSlug }: { serviceIdOrSlug: string }) 
               </div>
             )}
             
-            <Link
-              href={`/book/${service.slug ?? service.id}${selectedVariationId ? `?variation=${selectedVariationId}` : ""}`}
-              className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#C86A37] to-[#A85028] px-5 text-sm font-bold text-white shadow-xs transition-all duration-300 hover:opacity-95"
+            <button
+              type="button"
+              onClick={() => {
+                if (!service) return;
+                const activeVars = getActiveVariations(service);
+                const v = activeVars.find((x) => x.id === selectedVariationId) || activeVars[0];
+                if (v) {
+                  addItem(service, 1, {
+                    id: v.id,
+                    title: v.title,
+                    price: v.price,
+                    imageUrl: v.imageUrl || v.image || undefined,
+                  });
+                } else {
+                  addItem(service, 1);
+                }
+                router.push("/cart/checkout");
+              }}
+              className="mt-6 inline-flex h-12 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#C86A37] to-[#A85028] px-5 text-sm font-bold text-white shadow-xs transition-all duration-300 hover:opacity-95 cursor-pointer"
             >
               Book Now
-            </Link>
+            </button>
             <div className="mt-3">
               <AddToCartButton
                 service={service}

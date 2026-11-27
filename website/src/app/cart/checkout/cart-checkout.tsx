@@ -37,6 +37,10 @@ import { geocodeAddressString, reverseGeocode } from "@/lib/geocode";
 import { getDb } from "@/lib/firebase/firestore";
 import { loadService } from "@/lib/services/helpers";
 import { SkeletonCheckoutSummary } from "@/components/ui/skeleton";
+import {
+  BookingSuccessModal,
+  type BookingSuccessData,
+} from "@/components/booking/booking-success-modal";
 
 export function CartCheckoutClient() {
   const router = useRouter();
@@ -67,6 +71,7 @@ export function CartCheckoutClient() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentPreference, setPaymentPreference] = useState<"PAY_NOW" | "PAY_LATER">("PAY_LATER");
+  const [successData, setSuccessData] = useState<BookingSuccessData | null>(null);
 
   const pricingItems = useMemo(
     () =>
@@ -241,6 +246,7 @@ export function CartCheckoutClient() {
       if (!slot) throw new Error("Select a time slot.");
 
       const createdIds: string[] = [];
+      const createdResults: any[] = [];
       let sharedTechId = "";
       const freshQuote = quote;
       if (!freshQuote) throw new Error("Could not confirm the booking amount.");
@@ -281,6 +287,7 @@ export function CartCheckoutClient() {
           });
 
           createdIds.push(result.bookingId);
+          createdResults.push(result);
           if (result.technicianId) {
             groupTech = result.technicianId;
             if (group.sharedTechnicianPossible) {
@@ -291,7 +298,23 @@ export function CartCheckoutClient() {
       }
 
       clearCart();
-      if (createdIds.length === 1) {
+      if (createdResults.length > 0) {
+        const first = createdResults[0];
+        setSuccessData({
+          bookingId: first.bookingId,
+          bookingCode: first.bookingCode,
+          serviceName:
+            createdResults.length > 1
+              ? `${first.serviceName} + ${createdResults.length - 1} more`
+              : first.serviceName,
+          scheduledDate: first.scheduledDate,
+          scheduledTime: first.scheduledTime,
+          totalAmount: createdResults.reduce(
+            (sum, r) => sum + (Number(r.totalAmount) || 0),
+            0
+          ),
+        });
+      } else if (createdIds.length === 1) {
         router.replace(`/dashboard/bookings/${createdIds[0]}`);
       } else {
         router.replace("/dashboard/bookings");
@@ -322,7 +345,7 @@ export function CartCheckoutClient() {
     );
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && !successData) {
     return (
       <Container className="py-16 text-center">
         <p className="font-medium">Your cart is empty.</p>
@@ -655,6 +678,15 @@ export function CartCheckoutClient() {
           ) : null}
         </div>
       </Container>
+
+      {successData && (
+        <BookingSuccessModal
+          data={successData}
+          onClose={() => {
+            router.replace(`/dashboard/bookings/${successData.bookingId}`);
+          }}
+        />
+      )}
     </div>
   );
 }

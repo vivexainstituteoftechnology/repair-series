@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { groupSlotsByPeakWindows, flattenGroupSlotIndexes } from "../../../../technician/src/utils/peakSlotGroups";
-import { SCHEDULE_SLOT_DEFS } from "../../../../technician/src/utils/workScheduleSlots";
+import { groupSlotsByPeakWindows, flattenGroupSlotIndexes, SCHEDULE_SLOT_DEFS } from "./peakSlotGroups";
 
 describe("peak hour visual grouping", () => {
   it("08:00–10:00 groups two slots but keeps both indexes", () => {

@@ -4,7 +4,7 @@ import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import { RemoteImage as Image } from "@/components/remote-image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Check, Star, User, Loader2, FileDown, ShieldCheck, Edit3 } from "lucide-react";
+import { ArrowLeft, Check, Star, User, Loader2, FileDown, ShieldCheck, Edit3, Sparkles } from "lucide-react";
 import { ReviewModal } from "@/components/reviews/review-modal";
 import { StarRatingDisplay } from "@/components/reviews/star-rating";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { BookingExtrasApproval } from "@/components/booking-extras-approval";
 import { BookingPaymentRequestBanner } from "@/components/booking-payment-request";
 import { launchRazorpayCustomerCheckout } from "@/lib/payments/client-checkout";
 import { cancelBookingByUser } from "@/lib/booking/allocation";
+import { triggerBackgroundAssignmentQueue } from "@/lib/booking/assign-api";
 import {
   bookingPaidAmount,
   evaluateCancellation,
@@ -154,6 +155,19 @@ export function BookingDetail({ bookingId }: { bookingId: string }) {
     });
     return () => unsub();
   }, [db, booking?.technicianId]);
+
+  useEffect(() => {
+    if (!booking?.id) return;
+    const isPendingTech =
+      !booking.technicianId &&
+      !["completed", "cancelled", "canceled"].includes(String(booking.status).toLowerCase());
+    if (isPendingTech) {
+      const timer = setTimeout(() => {
+        void triggerBackgroundAssignmentQueue(booking.id);
+      }, 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [booking?.id, booking?.technicianId, booking?.status]);
 
   useEffect(() => {
     if (!db || !booking?.serviceId) {
@@ -480,6 +494,29 @@ export function BookingDetail({ bookingId }: { bookingId: string }) {
                       {technician.rating.toFixed(1)}
                     </div>
                   ) : null}
+                </div>
+              </div>
+            </div>
+          ) : !["completed", "cancelled", "canceled"].includes(String(booking.status).toLowerCase()) ? (
+            <div className="rounded-[24px] border border-amber-200/80 bg-gradient-to-br from-amber-50/70 to-orange-50/40 p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="relative flex size-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+                  <span className="absolute size-full rounded-2xl bg-amber-400/20 animate-ping" />
+                  <Sparkles className="size-6 text-amber-600" />
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-base font-bold text-[#0a0f1c]">
+                      Finding Your Nearest Service Partner
+                    </h2>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-bold text-amber-800">
+                      <span className="size-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      In Progress
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-[#64748b] leading-relaxed">
+                    We are currently matching your booking with a verified technician near your area. Your booking is 100% confirmed, and you will see your technician details and contact here shortly.
+                  </p>
                 </div>
               </div>
             </div>

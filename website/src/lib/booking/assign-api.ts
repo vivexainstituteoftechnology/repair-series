@@ -91,3 +91,31 @@ export async function requestAssignPartner(body: AssignPartnerRequest) {
   }
   return payload;
 }
+
+/**
+ * Triggers background partner assignment queue worker without blocking the customer UI.
+ */
+export async function triggerBackgroundAssignmentQueue(bookingId?: string): Promise<void> {
+  try {
+    const auth = getAuthClient();
+    const user = auth?.currentUser;
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (user) {
+      const token = await user.getIdToken().catch(() => null);
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    void fetch("/api/bookings/process-queue", {
+      method: "POST",
+      headers,
+      body: JSON.stringify(bookingId ? { bookingId } : {}),
+    }).catch(() => {
+      /* background fire-and-forget; queue item remains safe in Firestore */
+    });
+  } catch {
+    /* ignore */
+  }
+}
+

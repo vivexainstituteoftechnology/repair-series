@@ -6,6 +6,7 @@ import {
   getDocs,
   query,
   serverTimestamp,
+  setDoc,
   Timestamp,
   updateDoc,
   where,
@@ -15,7 +16,10 @@ import {
   assignExistingTechnicianAndLockBusySlot,
   isSlotStillAvailable,
 } from "@/lib/booking/allocation";
-import { assignNearestPartnerForBooking } from "@/lib/booking/assign-api";
+import {
+  assignNearestPartnerForBooking,
+  triggerBackgroundAssignmentQueue,
+} from "@/lib/booking/assign-api";
 import { buildFullAddress, addressFormToBookingAddress } from "@/lib/booking/address";
 import { generateBookingCode } from "@/lib/booking/booking-code";
 import { resolveBookingSlot, isSlotPast, isPastDateKey } from "@/lib/booking/slots";
@@ -106,7 +110,16 @@ export async function createCustomerBooking(
     quantity?: number;
     paymentPreference?: PaymentPreference;
   },
-): Promise<{ bookingId: string; status: string; technicianId: string | null }> {
+): Promise<{
+  bookingId: string;
+  bookingCode: string;
+  status: string;
+  technicianId: string | null;
+  serviceName: string;
+  scheduledDate: string;
+  scheduledTime: string;
+  totalAmount: number;
+}> {
   const liveUser = getAuthClient()?.currentUser;
   if (!liveUser) {
     throw Object.assign(new Error("Sign in required"), { status: 401 });
@@ -365,115 +378,66 @@ export async function createCustomerBooking(
   const ref = await addDoc(collection(db, "bookings"), payload);
   const bookingId = ref.id;
 
+  // 1. Immediately persist assignment task into database-backed queue for reliable background execution
   try {
-    if (revisitTechnicianId) {
-      await assignExistingTechnicianAndLockBusySlot(db, {
-        bookingId,
-        technicianId: revisitTechnicianId,
-        dateStr: draft.dateKey,
-        slotIndex: slot.slotIndex,
-        slotLabel,
-      });
-      // Update parent revisit counters
-      try {
-        const parentRef = doc(db, "bookings", revisitFrom);
-        const parentSnap = await getDoc(parentRef);
-        if (parentSnap.exists()) {
-          const p = parentSnap.data() || {};
-          const history = Array.isArray(p.revisitHistory) ? [...p.revisitHistory] : [];
-          history.push({
-            bookingId,
-            bookingCode,
-            claimedAt: new Date().toISOString(),
-            technicianId: revisitTechnicianId,
-          });
-          const remainingRaw =
-            p.revisitRemaining ?? p.remainingRevisits ?? p.freeRevisitsRemaining;
-          const patch: Record<string, unknown> = {
-            revisitHistory: history,
-            updatedAt: serverTimestamp(),
-          };
-          if (remainingRaw != null && Number.isFinite(Number(remainingRaw))) {
-            const next = Math.max(0, Math.round(Number(remainingRaw)) - 1);
-            patch.revisitRemaining = next;
-            patch.remainingRevisits = next;
-            patch.freeRevisitsRemaining = next;
-          } else if (parentServicePolicy || p.revisitPolicy) {
-            const pol = normalizeRevisitPolicy(
-              (p.revisitPolicy as Record<string, unknown>) ||
-                parentServicePolicy ||
-                {},
-            );
-            const used = history.length;
-            const next =
-              pol.type === "fixed_count"
-                ? Math.max(0, pol.freeRevisitCount - used)
-                : pol.maxRevisitsInPeriod > 0
-                  ? Math.max(0, pol.maxRevisitsInPeriod - used)
-                  : Math.max(0, (pol.freeRevisitCount || 1) - used);
-            patch.revisitRemaining = next;
-            patch.remainingRevisits = next;
-            patch.freeRevisitsRemaining = next;
-            if (!p.revisitPolicy && parentServicePolicy) {
-              patch.revisitPolicy = normalizeRevisitPolicy(parentServicePolicy);
-            }
-          }
-          await updateDoc(parentRef, patch);
-        }
-      } catch {
-        /* best effort */
-      }
-    } else {
-      await assignNearestPartnerForBooking({
-        bookingId,
-        dateStr: draft.dateKey,
-        slotIndex: slot.slotIndex,
-        slotLabel,
-        categoryId,
-        serviceTypeId,
-        serviceCategoryId: serviceCategoryId || categoryId,
-        userLat,
-        userLng,
-      });
-    }
-  } catch (e) {
-    const err = e as Error & { code?: string };
-    let alreadyAssigned = false;
+    await setDoc(doc(db, "partnerAssignmentQueue", bookingId), {
+      bookingId,
+      status: "pending",
+      attempts: 0,
+      maxAttempts: 5,
+      dateStr: draft.dateKey,
+      slotIndex: slot.slotIndex,
+      slotLabel,
+      categoryId,
+      serviceTypeId: serviceTypeId || null,
+      serviceCategoryId: serviceCategoryId || categoryId,
+      userLat,
+      userLng,
+      preferredTechnicianId: revisitTechnicianId || params.preferredTechnicianId || null,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  } catch {
+    /* queue table write failure falls back to on-demand synthesis in process-queue */
+  }
+
+  // 2. Trigger asynchronous background assignment without blocking client response
+  triggerBackgroundAssignmentQueue(bookingId);
+
+  // 3. Handle revisit parent link if applicable
+  if (revisitFrom && revisitTechnicianId) {
     try {
-      const assignedSnap = await getDoc(doc(db, "bookings", bookingId));
-      const assigned = assignedSnap.data() as Record<string, unknown> | undefined;
-      const tech = String(assigned?.technicianId || assigned?.assignedTechnicianId || "").trim();
-      alreadyAssigned = Boolean(tech) || String(assigned?.status || "") === "Assigned";
-    } catch {
-      alreadyAssigned = false;
-    }
-    if (!alreadyAssigned) {
-    const noPartner =
-      err.code === "NO_ELIGIBLE_PARTNER" || err.code === "ALL_TECHS_BUSY";
-    if (noPartner) {
-      try {
-        await updateDoc(doc(db, "bookings", bookingId), {
-          ...findingPartnerPatch(),
-          updatedAt: serverTimestamp(),
+      const parentRef = doc(db, "bookings", revisitFrom);
+      const parentSnap = await getDoc(parentRef);
+      if (parentSnap.exists()) {
+        const p = parentSnap.data() || {};
+        const history = Array.isArray(p.revisitHistory) ? [...p.revisitHistory] : [];
+        history.push({
+          bookingId,
+          bookingCode,
+          claimedAt: new Date().toISOString(),
+          technicianId: revisitTechnicianId,
         });
-      } catch {
-        /* keep committed booking even if this patch fails */
+        const remainingRaw =
+          p.revisitRemaining ?? p.remainingRevisits ?? p.freeRevisitsRemaining;
+        const patch: Record<string, unknown> = {
+          revisitHistory: history,
+          updatedAt: serverTimestamp(),
+        };
+        if (remainingRaw != null && Number.isFinite(Number(remainingRaw))) {
+          const next = Math.max(0, Math.round(Number(remainingRaw)) - 1);
+          patch.revisitRemaining = next;
+          patch.remainingRevisits = next;
+          patch.freeRevisitsRemaining = next;
+        }
+        await updateDoc(parentRef, patch);
       }
-      return { bookingId, status: BOOKING_STATUS.NEW, technicianId: null };
-    }
-    if (err.code === "PAST_SLOT") {
-      throw new Error(SLOT_NO_LONGER_AVAILABLE);
-    }
-    if (err.code === "ASSIGN_PERMISSION_DENIED" || err.code === "permission-denied") {
-      throw new Error("Booking assignment permission denied");
-    }
-    throw new Error(
-      err.message ||
-        "Could not assign a partner for this slot. Please try another time.",
-    );
+    } catch {
+      /* best effort */
     }
   }
 
+  // 4. Update customer address cache and profile booking counter
   try {
     await incrementCustomerBookings(db, customerId);
   } catch {
@@ -494,34 +458,34 @@ export async function createCustomerBooking(
     const nextAddresses = upsertSavedAddress(profile?.addresses, savedAddress);
     await saveCustomerAddresses(db, customerId, nextAddresses);
   } catch {
-    /* best effort — lastUsedAddress already saved */
+    /* best effort */
   }
 
-  let technicianId: string | null = null;
-  let status = String(BOOKING_STATUS.ASSIGNED);
-  try {
-    const assignedSnap = await getDoc(doc(db, "bookings", bookingId));
-    const assigned = assignedSnap.data() as Record<string, unknown> | undefined;
-    technicianId = assigned?.technicianId ? String(assigned.technicianId) : null;
-    status = String(assigned?.status ?? BOOKING_STATUS.ASSIGNED);
-  } catch {
-    /* booking already committed; return id even if the follow-up read fails */
-  }
-
+  // 5. Fire initial created notification asynchronously
   try {
     const { requestRemotePush } = await import("@/lib/notify/remote-notify");
-    await requestRemotePush({
-      eventType: technicianId ? "assigned" : "created",
+    void requestRemotePush({
+      eventType: "created",
       bookingId,
       customerId,
-      technicianId: technicianId || "",
+      technicianId: "",
       serviceName: getServiceName(service),
       bookingCode,
-      audience: "both",
-    });
+      audience: "customer",
+    }).catch(() => {});
   } catch {
-    /* optional until notify server configured */
+    /* optional */
   }
 
-  return { bookingId, status, technicianId };
+  // 6. Return INSTANT booking success
+  return {
+    bookingId,
+    bookingCode,
+    status: BOOKING_STATUS.NEW,
+    technicianId: null,
+    serviceName: getServiceName(service),
+    scheduledDate: draft.dateKey,
+    scheduledTime: slotLabel,
+    totalAmount: priced ? Number(priced.customer.customerTotal) || 0 : servicePrice,
+  };
 }
