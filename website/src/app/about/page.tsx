@@ -68,6 +68,8 @@ export default function AboutPage() {
               <img
                 src="https://images.unsplash.com/photo-1621905252507-b35492cc74b4?auto=format&fit=crop&q=80&w=800"
                 alt="Repair Series Technicians"
+                loading="lazy"
+                decoding="async"
                 className="h-[450px] w-full rounded-[2rem] object-cover shadow-2xl"
               />
               <div className="absolute -left-6 bottom-12 flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-xl sm:-left-10">
@@ -156,6 +158,8 @@ export default function AboutPage() {
               <img
                 src="https://www.repairseries.in/assets/Devesh-founder-of-repairseries.png" // Ensure this image exists in your public folder
                 alt="Devesh Kumar - Founder"
+                loading="lazy"
+                decoding="async"
                 className="mx-auto h-[300px] w-[250px] rounded-3xl object-cover shadow-lg"
               />
             </div>

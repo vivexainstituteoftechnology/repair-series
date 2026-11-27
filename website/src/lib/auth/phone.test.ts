@@ -73,6 +73,17 @@ describe("phone auth errors", () => {
       mapPhoneAuthError({ code: "auth/invalid-app-credential", message: "INVALID_APP_CREDENTIAL" }),
       /Authorized domains/,
     );
+    assert.match(
+      mapPhoneAuthError({
+        code: "auth/captcha-check-failed",
+        message: "Firebase: Hostname match not found (auth/captcha-check-failed).",
+      }),
+      /not authorized in Firebase Authentication/,
+    );
+    assert.match(
+      mapPhoneAuthError({ code: "auth/unauthorized-domain" }),
+      /not authorized for Firebase Authentication/,
+    );
   });
 
   it("produces clean user-facing error in toPhoneAuthUserError without dumping raw debug into message", () => {

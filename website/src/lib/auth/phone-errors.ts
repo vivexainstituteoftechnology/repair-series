@@ -176,6 +176,21 @@ export function mapPhoneAuthError(error: unknown): string {
     return "App verification failed (auth/invalid-app-credential). Confirm this domain is in Firebase Authorized domains, then refresh and try once.";
   }
   if (
+    blob.includes("HOSTNAME MATCH NOT FOUND") ||
+    blob.includes("HOSTNAME_MATCH_NOT_FOUND")
+  ) {
+    const host = typeof window !== "undefined" ? window.location.hostname : "www.repairseries.in";
+    return `Domain "${host}" is not authorized in Firebase Authentication (auth/captcha-check-failed: Hostname match not found). Please add "${host}" to Firebase Console → Authentication → Settings → Authorized domains.`;
+  }
+  if (
+    code === "auth/unauthorized-domain" ||
+    blob.includes("UNAUTHORIZED_DOMAIN") ||
+    blob.includes("UNAUTHORIZED DOMAIN")
+  ) {
+    const host = typeof window !== "undefined" ? window.location.hostname : "this domain";
+    return `Domain "${host}" is not authorized for Firebase Authentication. Please add "${host}" to Firebase Console → Authentication → Settings → Authorized domains.`;
+  }
+  if (
     code === "auth/captcha-check-failed" ||
     blob.includes("CAPTCHA_CHECK_FAILED") ||
     blob.includes("MISSING_CLIENT_IDENTIFIER") ||
